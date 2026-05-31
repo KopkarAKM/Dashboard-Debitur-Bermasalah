@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Pinjaman Koperasi</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbzCtYnpvA60VHSkxCC9xlE1KZnATK1AOXEL-HE4M2g3-ggoJ7jfyJqGyDkTgBEOoZEIbg/exec';
+
+        function App() {
+            const [loans, setLoans] = useState([]);
+            const [writeoffs, setWriteoffs] = useState([]);
+            const [reports, setReports] = useState([]);
+            const [activeTab, setActiveTab] = useState('laporan');
+            const [loading, setLoading] = useState(true);
+            const [isRefreshing, setIsRefreshing] = useState(false);
+            const [toastMsg, setToastMsg] = useState(null);
+
+            const [kunjunganModal, setKunjunganModal] = useState({ open: false, loan: null });
+            const [reskedulModal, setReskedulModal] = useState({ open: false, loan: null });
+            const [pengajuanModal, setPengajuanModal] = useState({ open: false });
+            const [approvalModal, setApprovalModal] = useState({ open: false, caseData: null });
+            const [laporanModal, setLaporanModal] = useState(false);
+
+            const fetchData = async () => {
+                setIsRefreshing(true);
+                try {
+                    const resLoans = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLoans`);
+                    const dataLoans = await resLoans.json();
+                    
+                    const processLoans = (rawLoans) => {
+                        return rawLoans.map(loan => {
+                            const cicilan = Number(loan.cicilan_bulanan) || 0;
+                            const tunggakanLalu = Number(loan.tunggakan_lalu) || 0;
+                            const bayar = Number(loan.bayar_bulan_ini) || 0;
+                            
+                            const kewajibanTotal = tunggakanLalu + cicilan;
+                            const sisaTunggakan = kewajibanTotal - bayar;
+                            
+                            let calcStatus = 'Lancar';
+                            if (cicilan > 0) {
+                                if (sisaTunggakan <= 0) {
+                                    calcStatus = 'Lancar';
+                                } else if (sisaTunggakan > 0 && sisaTunggakan < cicilan) {
+                                    calcStatus = 'Kurang Lancar (Parsial)';
+                                } else if (sisaTunggakan >= cicilan) {
+                                    const rasio = Math.floor(sisaTunggakan / cicilan);
+                                    if (rasio === 1) calcStatus = 'Telat 1 Bulan';
+                                    else if (rasio === 2) calcStatus = 'Telat 2 Bulan';
+                                    else if (rasio >= 3) calcStatus = 'Telat 3 Bulan (Macet)';
+                                }
+                            }
+                            
+                            return { ...loan, kewajibanTotal, sisaTunggakan, status: calcStatus };
+                        });
+                    };
+                    
+                    if (dataLoans.data && dataLoans.data.length > 0) {
+                        setLoans(processLoans(dataLoans.data));
+                    } else {
+                        setLoans([]);
+                    }
+
+                    const resWriteoffs = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getWriteoffs`);
+                    const dataWriteoffs = await resWriteoffs.json();
+                    if (dataWriteoffs.data) {
+                        setWriteoffs(dataWriteoffs.data);
+                    }
+
+                    const resLaporan = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLaporan`);
+                    const dataLaporan = await resLaporan.json();
+                    if (dataLaporan.data) {
+                        setReports(dataLaporan.data.reverse());
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data", error);
+                    showToast("Gagal menyinkronkan data.");
+                } finally {
+                    setLoading(false);
+                    setIsRefreshing(false);
+                }
+            };
+
+            useEffect(() => {
+                fetchData();
+            }, []);
+
+            const showToast = (message) => {
+                setToastMsg(message);
+                setTimeout(() => setToastMsg(null), 3000);
+            };
+
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'Lancar': return 'bg-green-100 text-green-800 border-green-200';
+                    case 'Kurang Lancar (Parsial)': return 'bg-blue-100 text-blue-800 border-blue-200';
+                    case 'Telat 1 Bulan': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                    case 'Telat 2 Bulan': return 'bg-orange-100 text-orange-800 border-orange-200';
+                    case 'Telat 3 Bulan (Macet)': 
+                    case 'Gagal Debit': return 'bg-rose-100 text-rose-900 border-rose-300 font-bold';
+                    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+                }
+            };
+
+            const getStatusIcon = (status) => {
+                switch (status) {
+                    case 'Lancar': return <i className="fa-solid fa-circle-check text-green-600 mr-1"></i>;
+                    case 'Kurang Lancar (Parsial)': return <i className="fa-solid fa-circle-half-stroke text-blue-600 mr-1"></i>;
+                    case 'Telat 1 Bulan': return <i className="fa-solid fa-triangle-exclamation text-yellow-600 mr-1"></i>;
+                    case 'Telat 2 Bulan': return <i className="fa-solid fa-circle-exclamation text-orange-600 mr-1"></i>;
+                    case 'Telat 3 Bulan (Macet)': 
+                    case 'Gagal Debit': return <i className="fa-solid fa-circle-xmark text-red-600 mr-1"></i>;
+                    default: return null;
+                }
+            };
+
+            const handleAjukanKasus = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const loanId = formData.get('loanId');
+                const selectedLoan = loans.find(l => String(l.id) === String(loanId));
+                
+                if(!selectedLoan) {
+                    showToast("Anggota tidak ditemukan");
+                    return;
+                }
+
+                const params = new URLSearchParams();
+                params.append('action', 'addWriteoff');
+                params.append('loanId', loanId);
+                params.append('nama', selectedLoan.nama);
+                params.append('nik', selectedLoan.nik);
+                params.append('sisaHutang', selectedLoan.sisa);
+                params.append('alasan', formData.get('alasan'));
+
+                setIsRefreshing(true);
+                try {
+                    const response = await fetch(GOOGLE_SHEETS_API_URL, { method: 'POST', body: params });
+                    const result = await response.json();
+                    if(result.status === 'success') {
+                        setPengajuanModal({ open: false });
+                        showToast("Kasus berhasil diajukan");
+                        fetchData(); 
+                    } else {
+                        showToast("Gagal menyimpan data");
+                    }
+                } catch (error) {
+                    showToast("Terjadi kesalahan jaringan");
+                } finally {
+                    setIsRefreshing(false);
+                }
+            };
+
+            const handleApproval = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const statusPersetujuan = (formData.get('keputusanManajer') === 'on' && formData.get('keputusanPengurus') === 'on') ? 'Disetujui' : 'Menunggu Persetujuan';
+
+                const params = new URLSearchParams();
+                params.append('action', 'updateWriteoff');
+                params.append('id', approvalModal.caseData.id);
+                params.append('sumberDana', formData.get('sumberDana'));
+                params.append('nilaiPenyelesaian', formData.get('nilaiPenyelesaian'));
+                params.append('status', statusPersetujuan);
+
+                setIsRefreshing(true);
+                try {
+                    const response = await fetch(GOOGLE_SHEETS_API_URL, { method: 'POST', body: params });
+                    const result = await response.json();
+                    if(result.status === 'success') {
+                        setApprovalModal({ open: false, caseData: null });
+                        showToast("Keputusan berhasil disimpan");
+                        fetchData(); 
+                    }
+                } catch (error) {
+                    showToast("Gagal menyimpan keputusan");
+                } finally {
+                    setIsRefreshing(false);
+                }
+            };
+
+            const handleSimpanLaporan = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const rawPeriode = formData.get('periode');
+
+                const [year, month] = rawPeriode.split('-');
+                const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+                const periode = `${namaBulan[parseInt(month, 10) - 1]} ${year}`;
+
+                const total_kewajiban = loans.reduce((sum, l) => sum + Number(l.kewajibanTotal), 0);
+                const total_bayar = loans.reduce((sum, l) => sum + Number(l.bayar_bulan_ini), 0);
+                const gagal_bayar_bulan_ini = total_kewajiban - total_bayar;
+                const akumulasi_tunggakan = loans.reduce((sum, l) => sum + Number(l.sisaTunggakan), 0);
+
+                const params = new URLSearchParams();
+                params.append('action', 'addLaporan');
+                params.append('periode', periode);
+                params.append('total_kewajiban', total_kewajiban);
+                params.append('total_bayar', total_bayar);
+                params.append('gagal_bayar_bulan_ini', gagal_bayar_bulan_ini);
+                params.append('akumulasi_tunggakan', akumulasi_tunggakan);
+
+                setIsRefreshing(true);
+                try {
+                    const response = await fetch(GOOGLE_SHEETS_API_URL, { method: 'POST', body: params });
+                    const result = await response.json();
+                    if(result.status === 'success') {
+                        setLaporanModal(false);
+                        showToast("Laporan bulan ini berhasil disimpan");
+                        fetchData();
+                    }
+                } catch (error) {
+                    showToast("Gagal menyimpan laporan");
+                } finally {
+                    setIsRefreshing(false);
+                }
+            };
+
+            const handleSimpanKunjungan = (e) => { 
+                e.preventDefault(); 
+                setKunjunganModal({ open: false, loan: null }); 
+                showToast("Surat Kunjungan berhasil dicetak");
+            };
+            const handleSimpanReskedul = (e) => { 
+                e.preventDefault(); 
+                setReskedulModal({ open: false, loan: null }); 
+                showToast("Proses Re-skedul sedang diproses");
+            };
+
+            const matrixStats = {
+                lancar: loans.filter(l => l.status === 'Lancar').length,
+                parsial: loans.filter(l => l.status === 'Kurang Lancar (Parsial)').length,
+                telat1: loans.filter(l => l.status === 'Telat 1 Bulan').length,
+                telat2: loans.filter(l => l.status === 'Telat 2 Bulan').length,
+                telat3: loans.filter(l => l.status === 'Telat 3 Bulan (Macet)' || l.status === 'Gagal Debit').length,
+            };
+
+            const ringkasanBulanIni = {
+                totalKewajiban: loans.reduce((sum, l) => sum + Number(l.kewajibanTotal), 0),
+                totalBayar: loans.reduce((sum, l) => sum + Number(l.bayar_bulan_ini), 0),
+                akumulasiTunggakan: loans.reduce((sum, l) => sum + Number(l.sisaTunggakan), 0)
+            };
+
+            if (loading) return (
+                <div className="flex h-screen items-center justify-center bg-slate-50">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen relative pb-10">
+                    {toastMsg && (
+                        <div className="fixed top-4 right-4 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl z-[60] flex items-center fade-in">
+                            <i className="fa-solid fa-circle-info mr-3 text-blue-400"></i>
+                            <span className="text-sm font-medium">{toastMsg}</span>
+                        </div>
+                    )}
+
+                    <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                                <i className="fa-solid fa-building-columns text-blue-600 mr-1"></i>
+                                Dasbor Koperasi
+                                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-300">
+                                    <i className="fa-solid fa-cloud-arrow-up mr-1"></i>Sinkron
+                                </span>
+                            </h1>
+                            <p className="text-sm text-slate-500 font-medium mt-1">Pemantauan dan Eskalasi Kredit</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button onClick={fetchData} disabled={isRefreshing} className="mr-2 p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-600 rounded-full transition-colors outline-none">
+                                <i className={`fa-solid fa-arrows-rotate text-lg ${isRefreshing ? 'animate-spin text-blue-600' : ''}`}></i>
+                            </button>
+                            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto">
+                                <button onClick={() => setActiveTab('laporan')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'laporan' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
+                                    <i className="fa-solid fa-chart-line mr-2"></i> Laporan
+                                </button>
+                                <button onClick={() => setActiveTab('pemantauan')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'pemantauan' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
+                                    <i className="fa-solid fa-users mr-2"></i> Pemantauan
+                                </button>
+                                <button onClick={() => setActiveTab('matriks')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'matriks' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
+                                    <i className="fa-solid fa-table-cells mr-2"></i> Matriks Risiko
+                                </button>
+                                <button onClick={() => setActiveTab('penghapusan')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'penghapusan' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
+                                    <i className="fa-solid fa-briefcase mr-2"></i> Penyelesaian
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="p-6 max-w-7xl mx-auto">
+                        
+                        {/* TAB PEMANTAUAN */}
+                        {activeTab === 'pemantauan' && (
+                            <div className="fade-in">
+                                <div className="mb-6">
+                                    <h2 className="text-xl font-bold text-slate-800">Daftar Kelancaran Pinjaman</h2>
+                                </div>
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm whitespace-nowrap">
+                                            <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-semibold">Nama Anggota</th>
+                                                    <th className="px-6 py-4 font-semibold">Sisa Pinjaman</th>
+                                                    <th className="px-6 py-4 font-semibold">Tagihan dan Bayar</th>
+                                                    <th className="px-6 py-4 font-semibold">Status</th>
+                                                    <th className="px-6 py-4 font-semibold text-right">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {loans.map((loan) => (
+                                                    <tr key={loan.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            <div className="font-semibold text-slate-800">{loan.nama}</div>
+                                                            <div className="text-xs text-slate-500 mt-0.5">NIK {loan.nik}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 font-medium text-slate-700">Rp {Number(loan.sisa).toLocaleString('id-ID')}</td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-slate-800">Rp {Number(loan.kewajibanTotal).toLocaleString('id-ID')}</div>
+                                                            <div className={`text-xs mt-1 font-medium ${Number(loan.bayar_bulan_ini) < Number(loan.kewajibanTotal) ? 'text-red-500' : 'text-green-600'}`}>
+                                                                Bayar Rp {Number(loan.bayar_bulan_ini).toLocaleString('id-ID')}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.status)}`}>
+                                                                {getStatusIcon(loan.status)}
+                                                                {loan.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            {(loan.status === 'Telat 1 Bulan' || loan.status === 'Telat 2 Bulan') && (
+                                                                <button onClick={() => setKunjunganModal({ open: true, loan })} className="px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg">
+                                                                    Kunjungan
+                                                                </button>
+                                                            )}
+                                                            {(loan.status === 'Telat 3 Bulan (Macet)' || loan.status === 'Gagal Debit') && (
+                                                                <button onClick={() => setReskedulModal({ open: true, loan })} className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg">
+                                                                    Re-Skedul
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {loans.length === 0 && (<tr><td colSpan="5" className="text-center py-8 text-slate-500">Data kosong</td></tr>)}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB MATRIKS RISIKO */}
+                        {activeTab === 'matriks' && (
+                            <div className="fade-in">
+                                <div className="mb-6">
+                                    <h2 className="text-xl font-bold text-slate-800">Matriks Risiko Keterlambatan</h2>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-green-500">
+                                        <div className="text-sm font-medium text-slate-500">Lancar</div>
+                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.lancar}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-blue-400">
+                                        <div className="text-sm font-medium text-slate-500">Parsial</div>
+                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.parsial}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-yellow-400">
+                                        <div className="text-sm font-medium text-slate-500">Telat 1 Bulan</div>
+                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.telat1}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-orange-500">
+                                        <div className="text-sm font-medium text-slate-500">Telat 2 Bulan</div>
+                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.telat2}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-red-600">
+                                        <div className="text-sm font-medium text-slate-500">Macet</div>
+                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.telat3}</div>
+                                    </div>
+                                </div>
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center text-slate-500">
+                                    Gunakan filter matriks ini untuk memetakan penanganan anggota berdasarkan lama tunggakan.
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB LAPORAN BULANAN (BARU) */}
+                        {activeTab === 'laporan' && (
+                            <div className="fade-in">
+                                <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-800">Laporan Performa Bulanan</h2>
+                                        <p className="text-slate-500 text-sm mt-1">Rekapitulasi performa kolektibilitas pinjaman</p>
+                                    </div>
+                                    <button onClick={() => setLaporanModal(true)} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
+                                        <i className="fa-solid fa-floppy-disk mr-2"></i> Simpan Posisi Bulan Ini
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Tagihan Saat Ini</div>
+                                        <div className="text-2xl font-bold text-slate-800">Rp {ringkasanBulanIni.totalKewajiban.toLocaleString('id-ID')}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Pembayaran Masuk</div>
+                                        <div className="text-2xl font-bold text-green-600">Rp {ringkasanBulanIni.totalBayar.toLocaleString('id-ID')}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                                        <div className="text-sm font-medium text-slate-500 mb-1">Akumulasi Tunggakan Berjalan</div>
+                                        <div className="text-2xl font-bold text-red-600">Rp {ringkasanBulanIni.akumulasiTunggakan.toLocaleString('id-ID')}</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700">
+                                        Riwayat Laporan Tersimpan
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm whitespace-nowrap">
+                                            <thead className="text-slate-500 border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-6 py-3 font-semibold">Periode</th>
+                                                    <th className="px-6 py-3 font-semibold">Total Tagihan</th>
+                                                    <th className="px-6 py-3 font-semibold">Total Bayar</th>
+                                                    <th className="px-6 py-3 font-semibold text-red-600">Gagal Bayar Bulan Ini</th>
+                                                    <th className="px-6 py-3 font-semibold text-red-600">Total Akumulasi Macet</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {reports.map((rep) => (
+                                                    <tr key={rep.id} className="hover:bg-slate-50">
+                                                        <td className="px-6 py-4 font-bold text-slate-800">{rep.periode}</td>
+                                                        <td className="px-6 py-4">Rp {Number(rep.total_kewajiban).toLocaleString('id-ID')}</td>
+                                                        <td className="px-6 py-4 text-green-600 font-medium">Rp {Number(rep.total_bayar).toLocaleString('id-ID')}</td>
+                                                        <td className="px-6 py-4 text-red-500 font-medium">Rp {Number(rep.gagal_bayar_bulan_ini).toLocaleString('id-ID')}</td>
+                                                        <td className="px-6 py-4 text-red-600 font-bold">Rp {Number(rep.akumulasi_tunggakan).toLocaleString('id-ID')}</td>
+                                                    </tr>
+                                                ))}
+                                                {reports.length === 0 && (
+                                                    <tr><td colSpan="5" className="text-center py-8 text-slate-500">Belum ada laporan tersimpan</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB PENYELESAIAN */}
+                        {activeTab === 'penghapusan' && (
+                            <div className="fade-in">
+                                <div className="mb-6 flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-800">Penyelesaian Pinjaman Macet</h2>
+                                    </div>
+                                    <button onClick={() => setPengajuanModal({ open: true })} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                                        Ajukan Kasus
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {writeoffs.length === 0 ? (
+                                        <div className="col-span-full py-16 text-center bg-white rounded-xl border border-dashed border-slate-300">
+                                            Data penyelesaian kosong.
+                                        </div>
+                                    ) : (
+                                        writeoffs.map((caseItem) => (
+                                            <div key={caseItem.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div>
+                                                        <h3 className="font-bold text-slate-800">{caseItem.nama}</h3>
+                                                        <p className="text-xs text-slate-500 mt-1">Sisa <span className="text-red-600 font-bold">Rp {Number(caseItem.sisaHutang).toLocaleString('id-ID')}</span></p>
+                                                    </div>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${caseItem.status === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                        {caseItem.status || 'Menunggu'}
+                                                    </span>
+                                                </div>
+                                                <div className="bg-slate-50 rounded-lg p-3 text-sm mb-4">
+                                                    <div className="font-semibold text-slate-700">Alasan</div>
+                                                    <div className="text-slate-600 mb-2">{caseItem.alasan}</div>
+                                                    <div className="font-semibold text-slate-700">Sumber</div>
+                                                    <div className="text-slate-600">{caseItem.sumberDana || '-'}</div>
+                                                </div>
+                                                <div className="mt-auto">
+                                                    <button onClick={() => setApprovalModal({ open: true, caseData: caseItem })} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-sm font-medium">
+                                                        Ruang Keputusan
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Modal Laporan */}
+                        {laporanModal && (
+                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 fade-in">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Simpan Laporan Bulanan</h3>
+                                    <form onSubmit={handleSimpanLaporan}>
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-1">Pilih Bulan dan Tahun</label>
+                                            <input type="month" name="periode" required className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500" />
+                                        </div>
+                                        <div className="bg-slate-50 p-4 rounded-lg mb-6 text-sm border border-slate-200">
+                                            Sistem akan mengunci nilai tagihan dan akumulasi tunggakan saat ini ke dalam Google Sheets secara permanen sebagai riwayat.
+                                        </div>
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setLaporanModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+                                            <button type="submit" disabled={isRefreshing} className="px-4 py-2 bg-slate-800 text-white rounded-lg">
+                                                {isRefreshing ? 'Menyimpan...' : 'Simpan Data'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Modals Lainnya */}
+                        {kunjunganModal.open && (
+                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Jadwal Kunjungan</h3>
+                                    <form onSubmit={handleSimpanKunjungan}>
+                                        <input type="date" required className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4" />
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setKunjunganModal({ open: false, loan: null })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
+                                            <button type="submit" className="px-4 py-2 bg-yellow-500 text-white rounded-lg">Tetapkan</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {reskedulModal.open && (
+                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Eskalasi Re-Skedul</h3>
+                                    <form onSubmit={handleSimpanReskedul}>
+                                        <div className="space-y-3 mb-6">
+                                            <label className="flex items-center gap-3"><input type="checkbox" required /> Persetujuan Re-skedul</label>
+                                            <label className="flex items-center gap-3"><input type="checkbox" required /> Kuasa Potong Gaji</label>
+                                        </div>
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setReskedulModal({ open: false, loan: null })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
+                                            <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded-lg">Proses Dokumen</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {pengajuanModal.open && (
+                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Ajukan Kasus Penghapusan</h3>
+                                    <form onSubmit={handleAjukanKasus}>
+                                        <select name="loanId" required className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
+                                            <option value="">Pilih Anggota</option>
+                                            {loans.filter(l => l.status === 'Gagal Debit' || l.status === 'Telat 3 Bulan (Macet)').map(l => (
+                                                <option key={l.id} value={l.id}>{l.nama}</option>
+                                            ))}
+                                        </select>
+                                        <select name="alasan" required className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-6">
+                                            <option value="Cacat Permanen">Cacat Permanen</option>
+                                            <option value="Meninggal Dunia">Meninggal Dunia</option>
+                                        </select>
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setPengajuanModal({ open: false })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
+                                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Kirim</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {approvalModal.open && (
+                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Ruang Keputusan</h3>
+                                    <form onSubmit={handleApproval}>
+                                        <div className="mb-4 text-xl font-bold text-red-600">Sisa: Rp {Number(approvalModal.caseData?.sisaHutang || 0).toLocaleString('id-ID')}</div>
+                                        <select name="sumberDana" defaultValue={approvalModal.caseData?.sumberDana} className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
+                                            <option value="Dana Asuransi">Dana Asuransi</option>
+                                            <option value="Dana Cadangan">Dana Cadangan Koperasi</option>
+                                        </select>
+                                        <input type="number" name="nilaiPenyelesaian" defaultValue={approvalModal.caseData?.nilaiPenyelesaian || approvalModal.caseData?.sisaHutang} className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4" />
+                                        <div className="space-y-3 mb-6">
+                                            <label className="flex items-center gap-3"><input type="checkbox" name="keputusanManajer" defaultChecked={approvalModal.caseData?.status === 'Disetujui'} /> Approval Manajer</label>
+                                            <label className="flex items-center gap-3"><input type="checkbox" name="keputusanPengurus" defaultChecked={approvalModal.caseData?.status === 'Disetujui'} /> Approval Pengurus</label>
+                                        </div>
+                                        <div className="flex justify-end gap-3">
+                                            <button type="button" onClick={() => setApprovalModal({ open: false, caseData: null })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
+                                            <button type="submit" className="px-4 py-2 bg-slate-900 text-white rounded-lg">Simpan</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
