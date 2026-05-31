@@ -36,11 +36,12 @@
             const [loans, setLoans] = useState([]);
             const [writeoffs, setWriteoffs] = useState([]);
             const [reports, setReports] = useState([]);
-            const [activeTab, setActiveTab] = useState('laporan');
+            const [activeTab, setActiveTab] = useState('laporan'); // Tab Laporan default pertama
             const [loading, setLoading] = useState(true);
             const [isRefreshing, setIsRefreshing] = useState(false);
             const [toastMsg, setToastMsg] = useState(null);
 
+            // Modals
             const [kunjunganModal, setKunjunganModal] = useState({ open: false, loan: null });
             const [reskedulModal, setReskedulModal] = useState({ open: false, loan: null });
             const [pengajuanModal, setPengajuanModal] = useState({ open: false });
@@ -50,6 +51,7 @@
             const fetchData = async () => {
                 setIsRefreshing(true);
                 try {
+                    // Fetch Loans
                     const resLoans = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLoans`);
                     const dataLoans = await resLoans.json();
                     
@@ -75,7 +77,6 @@
                                     else if (rasio >= 3) calcStatus = 'Telat 3 Bulan (Macet)';
                                 }
                             }
-                            
                             return { ...loan, kewajibanTotal, sisaTunggakan, status: calcStatus };
                         });
                     };
@@ -86,20 +87,22 @@
                         setLoans([]);
                     }
 
+                    // Fetch Writeoffs
                     const resWriteoffs = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getWriteoffs`);
                     const dataWriteoffs = await resWriteoffs.json();
                     if (dataWriteoffs.data) {
                         setWriteoffs(dataWriteoffs.data);
                     }
 
+                    // Fetch Laporan
                     const resLaporan = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLaporan`);
                     const dataLaporan = await resLaporan.json();
                     if (dataLaporan.data) {
-                        setReports(dataLaporan.data.reverse());
+                        setReports(dataLaporan.data.reverse()); // Menampilkan yang terbaru di atas
                     }
                 } catch (error) {
                     console.error("Gagal mengambil data", error);
-                    showToast("Gagal menyinkronkan data.");
+                    showToast("Gagal menyinkronkan data dari Google Sheets.");
                 } finally {
                     setLoading(false);
                     setIsRefreshing(false);
@@ -207,24 +210,13 @@
             const handleSimpanLaporan = async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
-                const rawPeriode = formData.get('periode');
-
-                const [year, month] = rawPeriode.split('-');
-                const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-                const periode = `${namaBulan[parseInt(month, 10) - 1]} ${year}`;
-
-                const total_kewajiban = loans.reduce((sum, l) => sum + Number(l.kewajibanTotal), 0);
-                const total_bayar = loans.reduce((sum, l) => sum + Number(l.bayar_bulan_ini), 0);
-                const gagal_bayar_bulan_ini = total_kewajiban - total_bayar;
-                const akumulasi_tunggakan = loans.reduce((sum, l) => sum + Number(l.sisaTunggakan), 0);
-
                 const params = new URLSearchParams();
                 params.append('action', 'addLaporan');
-                params.append('periode', periode);
-                params.append('total_kewajiban', total_kewajiban);
-                params.append('total_bayar', total_bayar);
-                params.append('gagal_bayar_bulan_ini', gagal_bayar_bulan_ini);
-                params.append('akumulasi_tunggakan', akumulasi_tunggakan);
+                
+                // Looping otomatis semua inputan form ke parameter
+                for (let [key, value] of formData.entries()) {
+                    params.append(key, value);
+                }
 
                 setIsRefreshing(true);
                 try {
@@ -232,7 +224,7 @@
                     const result = await response.json();
                     if(result.status === 'success') {
                         setLaporanModal(false);
-                        showToast("Laporan bulan ini berhasil disimpan");
+                        showToast("Data rincian laporan berhasil disimpan");
                         fetchData();
                     }
                 } catch (error) {
@@ -261,10 +253,11 @@
                 telat3: loans.filter(l => l.status === 'Telat 3 Bulan (Macet)' || l.status === 'Gagal Debit').length,
             };
 
-            const ringkasanBulanIni = {
-                totalKewajiban: loans.reduce((sum, l) => sum + Number(l.kewajibanTotal), 0),
-                totalBayar: loans.reduce((sum, l) => sum + Number(l.bayar_bulan_ini), 0),
-                akumulasiTunggakan: loans.reduce((sum, l) => sum + Number(l.sisaTunggakan), 0)
+            // Menghitung statistik global dari riwayat laporan yang diinput manual
+            const ringkasanLaporan = {
+                totalPotongan: reports.reduce((sum, r) => sum + Number(r.total_potongan || 0), 0),
+                totalPending: reports.reduce((sum, r) => sum + Number(r.sisa_pending || 0), 0),
+                totalOutstanding: reports.reduce((sum, r) => sum + Number(r.sisa_outstanding || 0), 0)
             };
 
             if (loading) return (
@@ -275,6 +268,7 @@
 
             return (
                 <div className="min-h-screen relative pb-10">
+                    {/* Toast Notification */}
                     {toastMsg && (
                         <div className="fixed top-4 right-4 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl z-[60] flex items-center fade-in">
                             <i className="fa-solid fa-circle-info mr-3 text-blue-400"></i>
@@ -282,6 +276,7 @@
                         </div>
                     )}
 
+                    {}
                     <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40">
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -316,11 +311,96 @@
 
                     <main className="p-6 max-w-7xl mx-auto">
                         
+                        {}
+                        {/* TAB LAPORAN BULANAN (MANUAL RINCI) */}
+                        {activeTab === 'laporan' && (
+                            <div className="fade-in">
+                                <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-800">Laporan Rincian Pemotongan & Tunggakan</h2>
+                                        <p className="text-slate-500 text-sm mt-1">Input manual riwayat transaksi dan gagal bayar anggota</p>
+                                    </div>
+                                    <button onClick={() => setLaporanModal(true)} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
+                                        <i className="fa-solid fa-plus mr-2"></i> Input Laporan Anggota
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
+                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Akumulasi Potongan</div>
+                                        <div className="text-2xl font-bold text-slate-800">Rp {ringkasanLaporan.totalPotongan.toLocaleString('id-ID')}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm border-l-4 border-l-yellow-500">
+                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Sisa Pending (Tunggakan)</div>
+                                        <div className="text-2xl font-bold text-red-600">Rp {ringkasanLaporan.totalPending.toLocaleString('id-ID')}</div>
+                                    </div>
+                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm border-l-4 border-l-slate-700">
+                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Sisa Outstanding Keseluruhan</div>
+                                        <div className="text-2xl font-bold text-slate-800">Rp {ringkasanLaporan.totalOutstanding.toLocaleString('id-ID')}</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700 flex justify-between items-center">
+                                        <span>Data Rekapitulasi Manual</span>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm whitespace-nowrap">
+                                            <thead className="text-slate-600 border-b border-slate-200 bg-slate-100">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-semibold">Periode</th>
+                                                    <th className="px-4 py-3 font-semibold">Nama / NRP</th>
+                                                    <th className="px-4 py-3 font-semibold">Site / Bank</th>
+                                                    <th className="px-4 py-3 font-semibold">Pinjaman & Simpanan</th>
+                                                    <th className="px-4 py-3 font-semibold">Total Potongan</th>
+                                                    <th className="px-4 py-3 font-semibold text-red-600">Sisa Pending</th>
+                                                    <th className="px-4 py-3 font-semibold">Sisa Outstanding</th>
+                                                    <th className="px-4 py-3 font-semibold">Keterangan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {reports.map((rep) => (
+                                                    <tr key={rep.id} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-4 font-bold text-slate-800">{rep.periode}</td>
+                                                        <td className="px-4 py-4">
+                                                            <div className="font-semibold">{rep.nama}</div>
+                                                            <div className="text-xs text-slate-500">NRP: {rep.nrp}</div>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs">
+                                                            <div className="font-medium text-slate-700">{rep.site}</div>
+                                                            <div className="text-slate-500">{rep.bank_potongan} - {rep.no_rek}</div>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs">
+                                                            <div>Jml: Rp {Number(rep.jumlah).toLocaleString('id-ID')}</div>
+                                                            <div>Wajib: Rp {Number(rep.simpanan_wajib).toLocaleString('id-ID')}</div>
+                                                            <div>Suka: Rp {Number(rep.sukarela).toLocaleString('id-ID')}</div>
+                                                        </td>
+                                                        <td className="px-4 py-4 font-bold text-blue-700">Rp {Number(rep.total_potongan).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-4 font-bold text-red-600">Rp {Number(rep.sisa_pending).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-4 font-medium text-slate-700">Rp {Number(rep.sisa_outstanding).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-4">
+                                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${rep.keterangan === 'Sudah Konfirmasi' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                                {rep.keterangan}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {reports.length === 0 && (
+                                                    <tr><td colSpan="8" className="text-center py-8 text-slate-500">Belum ada rincian laporan yang diinput</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {}
                         {/* TAB PEMANTAUAN */}
                         {activeTab === 'pemantauan' && (
                             <div className="fade-in">
                                 <div className="mb-6">
-                                    <h2 className="text-xl font-bold text-slate-800">Daftar Kelancaran Pinjaman</h2>
+                                    <h2 className="text-xl font-bold text-slate-800">Daftar Kelancaran Pinjaman (Kalkulasi Otomatis)</h2>
                                 </div>
                                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                                     <div className="overflow-x-auto">
@@ -376,6 +456,7 @@
                             </div>
                         )}
 
+                        {}
                         {/* TAB MATRIKS RISIKO */}
                         {activeTab === 'matriks' && (
                             <div className="fade-in">
@@ -410,69 +491,7 @@
                             </div>
                         )}
 
-                        {/* TAB LAPORAN BULANAN (BARU) */}
-                        {activeTab === 'laporan' && (
-                            <div className="fade-in">
-                                <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-800">Laporan Performa Bulanan</h2>
-                                        <p className="text-slate-500 text-sm mt-1">Rekapitulasi performa kolektibilitas pinjaman</p>
-                                    </div>
-                                    <button onClick={() => setLaporanModal(true)} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
-                                        <i className="fa-solid fa-floppy-disk mr-2"></i> Simpan Posisi Bulan Ini
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Tagihan Saat Ini</div>
-                                        <div className="text-2xl font-bold text-slate-800">Rp {ringkasanBulanIni.totalKewajiban.toLocaleString('id-ID')}</div>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Pembayaran Masuk</div>
-                                        <div className="text-2xl font-bold text-green-600">Rp {ringkasanBulanIni.totalBayar.toLocaleString('id-ID')}</div>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-                                        <div className="text-sm font-medium text-slate-500 mb-1">Akumulasi Tunggakan Berjalan</div>
-                                        <div className="text-2xl font-bold text-red-600">Rp {ringkasanBulanIni.akumulasiTunggakan.toLocaleString('id-ID')}</div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700">
-                                        Riwayat Laporan Tersimpan
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-sm whitespace-nowrap">
-                                            <thead className="text-slate-500 border-b border-slate-200">
-                                                <tr>
-                                                    <th className="px-6 py-3 font-semibold">Periode</th>
-                                                    <th className="px-6 py-3 font-semibold">Total Tagihan</th>
-                                                    <th className="px-6 py-3 font-semibold">Total Bayar</th>
-                                                    <th className="px-6 py-3 font-semibold text-red-600">Gagal Bayar Bulan Ini</th>
-                                                    <th className="px-6 py-3 font-semibold text-red-600">Total Akumulasi Macet</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {reports.map((rep) => (
-                                                    <tr key={rep.id} className="hover:bg-slate-50">
-                                                        <td className="px-6 py-4 font-bold text-slate-800">{rep.periode}</td>
-                                                        <td className="px-6 py-4">Rp {Number(rep.total_kewajiban).toLocaleString('id-ID')}</td>
-                                                        <td className="px-6 py-4 text-green-600 font-medium">Rp {Number(rep.total_bayar).toLocaleString('id-ID')}</td>
-                                                        <td className="px-6 py-4 text-red-500 font-medium">Rp {Number(rep.gagal_bayar_bulan_ini).toLocaleString('id-ID')}</td>
-                                                        <td className="px-6 py-4 text-red-600 font-bold">Rp {Number(rep.akumulasi_tunggakan).toLocaleString('id-ID')}</td>
-                                                    </tr>
-                                                ))}
-                                                {reports.length === 0 && (
-                                                    <tr><td colSpan="5" className="text-center py-8 text-slate-500">Belum ada laporan tersimpan</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
+                        {}
                         {/* TAB PENYELESAIAN */}
                         {activeTab === 'penghapusan' && (
                             <div className="fade-in">
@@ -519,23 +538,99 @@
                             </div>
                         )}
 
-                        {/* Modal Laporan */}
+                        {}
+                        {/* Modal Laporan Manual */}
                         {laporanModal && (
-                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 fade-in">
-                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Simpan Laporan Bulanan</h3>
-                                    <form onSubmit={handleSimpanLaporan}>
-                                        <div className="mb-4">
-                                            <label className="block text-sm font-semibold text-slate-700 mb-1">Pilih Bulan dan Tahun</label>
-                                            <input type="month" name="periode" required className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500" />
+                            <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 fade-in overflow-y-auto">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl my-8">
+                                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-800 rounded-t-xl flex justify-between items-center">
+                                        <h3 className="text-lg font-bold text-white">Input Rincian Laporan Pemotongan & Tunggakan</h3>
+                                        <button onClick={() => setLaporanModal(false)} className="text-slate-300 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+                                    </div>
+                                    <form onSubmit={handleSimpanLaporan} className="p-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                            {/* Baris 1 */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Periode (Bulan)</label>
+                                                <input type="month" name="periode" required className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Nama Anggota</label>
+                                                <input type="text" name="nama" required placeholder="Masukkan Nama" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">NRP</label>
+                                                <input type="text" name="nrp" required placeholder="NRP/NIK" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+
+                                            {/* Baris 2 */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Site Lokasi</label>
+                                                <input type="text" name="site" placeholder="Misal: Site A" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Bank Potongan</label>
+                                                <input type="text" name="bank_potongan" placeholder="Misal: Mandiri" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">No Rekening</label>
+                                                <input type="text" name="no_rek" placeholder="Nomor Rekening" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+
+                                            {/* Baris 3 */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Jumlah Pinjaman (Rp)</label>
+                                                <input type="number" name="jumlah" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Simpanan Wajib (Rp)</label>
+                                                <input type="number" name="simpanan_wajib" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Simpanan Sukarela (Rp)</label>
+                                                <input type="number" name="sukarela" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+
+                                            {/* Baris 4 */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Potongan Kena Bunga (Rp)</label>
+                                                <input type="number" name="potongan_kena_bunga" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Denda Admin 1.5% (Rp)</label>
+                                                <input type="number" name="denda" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-red-600 font-medium" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Total Potongan Bulan Ini (Rp)</label>
+                                                <input type="number" name="total_potongan" defaultValue={0} className="w-full border border-blue-400 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-600 bg-blue-50 font-bold" />
+                                            </div>
+
+                                            {/* Baris 5 */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Sisa Outstanding (Rp)</label>
+                                                <input type="number" name="sisa_outstanding" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Sisa Pending/Tunggakan (Rp)</label>
+                                                <input type="number" name="sisa_pending" defaultValue={0} className="w-full border border-red-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 bg-red-50 font-bold text-red-600" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Keterangan / Status</label>
+                                                <select name="keterangan" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                                                    <option value="Sudah Konfirmasi">Sudah Konfirmasi</option>
+                                                    <option value="Menunggu Jawaban">Menunggu Jawaban</option>
+                                                    <option value="Tidak Ada Jawaban">Tidak Ada Jawaban</option>
+                                                    <option value="Resign/PHK">Resign/PHK</option>
+                                                    <option value="Lainnya">Lainnya...</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div className="bg-slate-50 p-4 rounded-lg mb-6 text-sm border border-slate-200">
-                                            Sistem akan mengunci nilai tagihan dan akumulasi tunggakan saat ini ke dalam Google Sheets secara permanen sebagai riwayat.
-                                        </div>
-                                        <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => setLaporanModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-                                            <button type="submit" disabled={isRefreshing} className="px-4 py-2 bg-slate-800 text-white rounded-lg">
-                                                {isRefreshing ? 'Menyimpan...' : 'Simpan Data'}
+
+                                        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-200">
+                                            <button type="button" onClick={() => setLaporanModal(false)} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Batal</button>
+                                            <button type="submit" disabled={isRefreshing} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md flex items-center">
+                                                {isRefreshing ? <i className="fa-solid fa-spinner animate-spin mr-2"></i> : <i className="fa-solid fa-paper-plane mr-2"></i>}
+                                                {isRefreshing ? 'Menyimpan...' : 'Kirim & Simpan Data'}
                                             </button>
                                         </div>
                                     </form>
