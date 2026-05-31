@@ -1,47 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Manajemen Pinjaman Koperasi</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <style>
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIPEKAT Koperasi</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+        * { font-family: 'DM Sans', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-light { background: rgba(255,255,255,0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.6); }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 10px; }
+        .gradient-accent { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .gradient-warm { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .gradient-cool { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .gradient-gold { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .tab-active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
     </style>
-</head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased">
-    <div id="root"></div>
-
-    <script type="text/babel">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js" type="text/javascript"></script>
+ </head>
+ <body data-template-id="__page-root" class="min-h-screen text-white antialiased" style="background: linear-gradient(rgb(15, 12, 41), rgb(26, 26, 62));">
+  <div id="root"></div>
+  <script type="text/babel">
         const { useState, useEffect } = React;
-
         const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbzCtYnpvA60VHSkxCC9xlE1KZnATK1AOXEL-HE4M2g3-ggoJ7jfyJqGyDkTgBEOoZEIbg/exec';
 
         function App() {
             const [loans, setLoans] = useState([]);
             const [writeoffs, setWriteoffs] = useState([]);
             const [reports, setReports] = useState([]);
-            const [activeTab, setActiveTab] = useState('laporan'); // Tab Laporan default pertama
+            const [activeTab, setActiveTab] = useState('laporan');
             const [loading, setLoading] = useState(true);
             const [isRefreshing, setIsRefreshing] = useState(false);
             const [toastMsg, setToastMsg] = useState(null);
-
-            // Modals
             const [kunjunganModal, setKunjunganModal] = useState({ open: false, loan: null });
             const [reskedulModal, setReskedulModal] = useState({ open: false, loan: null });
             const [pengajuanModal, setPengajuanModal] = useState({ open: false });
@@ -51,343 +52,156 @@
             const fetchData = async () => {
                 setIsRefreshing(true);
                 try {
-                    // Fetch Loans
                     const resLoans = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLoans`);
                     const dataLoans = await resLoans.json();
-                    
-                    const processLoans = (rawLoans) => {
-                        return rawLoans.map(loan => {
-                            const cicilan = Number(loan.cicilan_bulanan) || 0;
-                            const tunggakanLalu = Number(loan.tunggakan_lalu) || 0;
-                            const bayar = Number(loan.bayar_bulan_ini) || 0;
-                            
-                            const kewajibanTotal = tunggakanLalu + cicilan;
-                            const sisaTunggakan = kewajibanTotal - bayar;
-                            
-                            let calcStatus = 'Lancar';
-                            if (cicilan > 0) {
-                                if (sisaTunggakan <= 0) {
-                                    calcStatus = 'Lancar';
-                                } else if (sisaTunggakan > 0 && sisaTunggakan < cicilan) {
-                                    calcStatus = 'Kurang Lancar (Parsial)';
-                                } else if (sisaTunggakan >= cicilan) {
-                                    const rasio = Math.floor(sisaTunggakan / cicilan);
-                                    if (rasio === 1) calcStatus = 'Telat 1 Bulan';
-                                    else if (rasio === 2) calcStatus = 'Telat 2 Bulan';
-                                    else if (rasio >= 3) calcStatus = 'Telat 3 Bulan (Macet)';
-                                }
-                            }
-                            return { ...loan, kewajibanTotal, sisaTunggakan, status: calcStatus };
-                        });
-                    };
-                    
-                    if (dataLoans.data && dataLoans.data.length > 0) {
-                        setLoans(processLoans(dataLoans.data));
-                    } else {
-                        setLoans([]);
-                    }
-
-                    // Fetch Writeoffs
-                    const resWriteoffs = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getWriteoffs`);
-                    const dataWriteoffs = await resWriteoffs.json();
-                    if (dataWriteoffs.data) {
-                        setWriteoffs(dataWriteoffs.data);
-                    }
-
-                    // Fetch Laporan
-                    const resLaporan = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLaporan`);
-                    const dataLaporan = await resLaporan.json();
-                    if (dataLaporan.data) {
-                        setReports(dataLaporan.data.reverse()); // Menampilkan yang terbaru di atas
-                    }
-                } catch (error) {
-                    console.error("Gagal mengambil data", error);
-                    showToast("Gagal menyinkronkan data dari Google Sheets.");
-                } finally {
-                    setLoading(false);
-                    setIsRefreshing(false);
-                }
+                    const processLoans = (rawLoans) => rawLoans.map(loan => {
+                        const cicilan = Number(loan.cicilan_bulanan) || 0;
+                        const tunggakanLalu = Number(loan.tunggakan_lalu) || 0;
+                        const bayar = Number(loan.bayar_bulan_ini) || 0;
+                        const kewajibanTotal = tunggakanLalu + cicilan;
+                        const sisaTunggakan = kewajibanTotal - bayar;
+                        let calcStatus = 'Lancar';
+                        if (cicilan > 0) {
+                            if (sisaTunggakan <= 0) calcStatus = 'Lancar';
+                            else if (sisaTunggakan < cicilan) calcStatus = 'Kurang Lancar (Parsial)';
+                            else { const r = Math.floor(sisaTunggakan / cicilan); if (r===1) calcStatus='Telat 1 Bulan'; else if (r===2) calcStatus='Telat 2 Bulan'; else if (r>=3) calcStatus='Telat 3 Bulan (Macet)'; }
+                        }
+                        return { ...loan, kewajibanTotal, sisaTunggakan, status: calcStatus };
+                    });
+                    if (dataLoans.data?.length > 0) setLoans(processLoans(dataLoans.data)); else setLoans([]);
+                    const resW = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getWriteoffs`);
+                    const dW = await resW.json(); if (dW.data) setWriteoffs(dW.data);
+                    const resL = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLaporan`);
+                    const dL = await resL.json(); if (dL.data) setReports(dL.data.reverse());
+                } catch (e) { showToast("Gagal menyinkronkan data."); }
+                finally { setLoading(false); setIsRefreshing(false); }
             };
 
-            useEffect(() => {
-                fetchData();
-            }, []);
+            useEffect(() => { fetchData(); }, []);
+            const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 3000); };
 
-            const showToast = (message) => {
-                setToastMsg(message);
-                setTimeout(() => setToastMsg(null), 3000);
-            };
-
-            const getStatusColor = (status) => {
-                switch (status) {
-                    case 'Lancar': return 'bg-green-100 text-green-800 border-green-200';
-                    case 'Kurang Lancar (Parsial)': return 'bg-blue-100 text-blue-800 border-blue-200';
-                    case 'Telat 1 Bulan': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                    case 'Telat 2 Bulan': return 'bg-orange-100 text-orange-800 border-orange-200';
-                    case 'Telat 3 Bulan (Macet)': 
-                    case 'Gagal Debit': return 'bg-rose-100 text-rose-900 border-rose-300 font-bold';
-                    default: return 'bg-gray-100 text-gray-800 border-gray-200';
-                }
-            };
-
-            const getStatusIcon = (status) => {
-                switch (status) {
-                    case 'Lancar': return <i className="fa-solid fa-circle-check text-green-600 mr-1"></i>;
-                    case 'Kurang Lancar (Parsial)': return <i className="fa-solid fa-circle-half-stroke text-blue-600 mr-1"></i>;
-                    case 'Telat 1 Bulan': return <i className="fa-solid fa-triangle-exclamation text-yellow-600 mr-1"></i>;
-                    case 'Telat 2 Bulan': return <i className="fa-solid fa-circle-exclamation text-orange-600 mr-1"></i>;
-                    case 'Telat 3 Bulan (Macet)': 
-                    case 'Gagal Debit': return <i className="fa-solid fa-circle-xmark text-red-600 mr-1"></i>;
-                    default: return null;
-                }
+            const getStatusColor = (s) => {
+                if (s==='Lancar') return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                if (s==='Kurang Lancar (Parsial)') return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+                if (s==='Telat 1 Bulan') return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                if (s==='Telat 2 Bulan') return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+                if (s==='Telat 3 Bulan (Macet)' || s==='Gagal Debit') return 'bg-rose-500/20 text-rose-300 border-rose-500/30 font-bold';
+                return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
             };
 
             const handleAjukanKasus = async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
-                const loanId = formData.get('loanId');
-                const selectedLoan = loans.find(l => String(l.id) === String(loanId));
-                
-                if(!selectedLoan) {
-                    showToast("Anggota tidak ditemukan");
-                    return;
-                }
-
-                const params = new URLSearchParams();
-                params.append('action', 'addWriteoff');
-                params.append('loanId', loanId);
-                params.append('nama', selectedLoan.nama);
-                params.append('nik', selectedLoan.nik);
-                params.append('sisaHutang', selectedLoan.sisa);
-                params.append('alasan', formData.get('alasan'));
-
+                const fd = new FormData(e.target); const loanId = fd.get('loanId');
+                const sel = loans.find(l => String(l.id) === String(loanId));
+                if(!sel) { showToast("Anggota tidak ditemukan"); return; }
+                const p = new URLSearchParams();
+                p.append('action','addWriteoff'); p.append('loanId',loanId); p.append('nama',sel.nama); p.append('nik',sel.nik); p.append('sisaHutang',sel.sisa); p.append('alasan',fd.get('alasan'));
                 setIsRefreshing(true);
-                try {
-                    const response = await fetch(GOOGLE_SHEETS_API_URL, { method: 'POST', body: params });
-                    const result = await response.json();
-                    if(result.status === 'success') {
-                        setPengajuanModal({ open: false });
-                        showToast("Kasus berhasil diajukan");
-                        fetchData(); 
-                    } else {
-                        showToast("Gagal menyimpan data");
-                    }
-                } catch (error) {
-                    showToast("Terjadi kesalahan jaringan");
-                } finally {
-                    setIsRefreshing(false);
-                }
+                try { const r = await fetch(GOOGLE_SHEETS_API_URL,{method:'POST',body:p}); const res = await r.json(); if(res.status==='success'){setPengajuanModal({open:false});showToast("Kasus berhasil diajukan");fetchData();}else showToast("Gagal"); } catch(e){showToast("Error jaringan");} finally{setIsRefreshing(false);}
             };
 
             const handleApproval = async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const statusPersetujuan = (formData.get('keputusanManajer') === 'on' && formData.get('keputusanPengurus') === 'on') ? 'Disetujui' : 'Menunggu Persetujuan';
-
-                const params = new URLSearchParams();
-                params.append('action', 'updateWriteoff');
-                params.append('id', approvalModal.caseData.id);
-                params.append('sumberDana', formData.get('sumberDana'));
-                params.append('nilaiPenyelesaian', formData.get('nilaiPenyelesaian'));
-                params.append('status', statusPersetujuan);
-
+                e.preventDefault(); const fd = new FormData(e.target);
+                const st = (fd.get('keputusanManajer')==='on' && fd.get('keputusanPengurus')==='on') ? 'Disetujui' : 'Menunggu Persetujuan';
+                const p = new URLSearchParams(); p.append('action','updateWriteoff'); p.append('id',approvalModal.caseData.id); p.append('sumberDana',fd.get('sumberDana')); p.append('nilaiPenyelesaian',fd.get('nilaiPenyelesaian')); p.append('status',st);
                 setIsRefreshing(true);
-                try {
-                    const response = await fetch(GOOGLE_SHEETS_API_URL, { method: 'POST', body: params });
-                    const result = await response.json();
-                    if(result.status === 'success') {
-                        setApprovalModal({ open: false, caseData: null });
-                        showToast("Keputusan berhasil disimpan");
-                        fetchData(); 
-                    }
-                } catch (error) {
-                    showToast("Gagal menyimpan keputusan");
-                } finally {
-                    setIsRefreshing(false);
-                }
+                try { const r = await fetch(GOOGLE_SHEETS_API_URL,{method:'POST',body:p}); const res = await r.json(); if(res.status==='success'){setApprovalModal({open:false,caseData:null});showToast("Keputusan disimpan");fetchData();} } catch(e){showToast("Gagal");} finally{setIsRefreshing(false);}
             };
 
             const handleSimpanLaporan = async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const params = new URLSearchParams();
-                params.append('action', 'addLaporan');
-                
-                // Looping otomatis semua inputan form ke parameter
-                for (let [key, value] of formData.entries()) {
-                    params.append(key, value);
-                }
-
+                e.preventDefault(); const fd = new FormData(e.target); const p = new URLSearchParams(); p.append('action','addLaporan');
+                for(let[k,v] of fd.entries()) p.append(k,v);
                 setIsRefreshing(true);
-                try {
-                    const response = await fetch(GOOGLE_SHEETS_API_URL, { method: 'POST', body: params });
-                    const result = await response.json();
-                    if(result.status === 'success') {
-                        setLaporanModal(false);
-                        showToast("Data rincian laporan berhasil disimpan");
-                        fetchData();
-                    }
-                } catch (error) {
-                    showToast("Gagal menyimpan laporan");
-                } finally {
-                    setIsRefreshing(false);
-                }
+                try { const r = await fetch(GOOGLE_SHEETS_API_URL,{method:'POST',body:p}); const res = await r.json(); if(res.status==='success'){setLaporanModal(false);showToast("Laporan disimpan");fetchData();} } catch(e){showToast("Gagal");} finally{setIsRefreshing(false);}
             };
 
-            const handleSimpanKunjungan = (e) => { 
-                e.preventDefault(); 
-                setKunjunganModal({ open: false, loan: null }); 
-                showToast("Surat Kunjungan berhasil dicetak");
-            };
-            const handleSimpanReskedul = (e) => { 
-                e.preventDefault(); 
-                setReskedulModal({ open: false, loan: null }); 
-                showToast("Proses Re-skedul sedang diproses");
-            };
+            const handleSimpanKunjungan = (e) => { e.preventDefault(); setKunjunganModal({open:false,loan:null}); showToast("Surat Kunjungan dicetak"); };
+            const handleSimpanReskedul = (e) => { e.preventDefault(); setReskedulModal({open:false,loan:null}); showToast("Re-skedul diproses"); };
 
-            const matrixStats = {
-                lancar: loans.filter(l => l.status === 'Lancar').length,
-                parsial: loans.filter(l => l.status === 'Kurang Lancar (Parsial)').length,
-                telat1: loans.filter(l => l.status === 'Telat 1 Bulan').length,
-                telat2: loans.filter(l => l.status === 'Telat 2 Bulan').length,
-                telat3: loans.filter(l => l.status === 'Telat 3 Bulan (Macet)' || l.status === 'Gagal Debit').length,
-            };
+            const ms = { lancar: loans.filter(l=>l.status==='Lancar').length, parsial: loans.filter(l=>l.status==='Kurang Lancar (Parsial)').length, telat1: loans.filter(l=>l.status==='Telat 1 Bulan').length, telat2: loans.filter(l=>l.status==='Telat 2 Bulan').length, telat3: loans.filter(l=>l.status==='Telat 3 Bulan (Macet)'||l.status==='Gagal Debit').length };
+            const rk = { totalPotongan: reports.reduce((s,r)=>s+Number(r.total_potongan||0),0), totalPending: reports.reduce((s,r)=>s+Number(r.sisa_pending||0),0), totalOutstanding: reports.reduce((s,r)=>s+Number(r.sisa_outstanding||0),0) };
 
-            // Menghitung statistik global dari riwayat laporan yang diinput manual
-            const ringkasanLaporan = {
-                totalPotongan: reports.reduce((sum, r) => sum + Number(r.total_potongan || 0), 0),
-                totalPending: reports.reduce((sum, r) => sum + Number(r.sisa_pending || 0), 0),
-                totalOutstanding: reports.reduce((sum, r) => sum + Number(r.sisa_outstanding || 0), 0)
-            };
-
-            if (loading) return (
-                <div className="flex h-screen items-center justify-center bg-slate-50">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                </div>
-            );
+            if (loading) return (<div className="flex items-center justify-center" style={{minHeight:'calc(100 * min(var(--vh,1vh),1vh))'}}><div className="w-12 h-12 rounded-full border-2 border-transparent border-t-purple-400 animate-spin"></div></div>);
 
             return (
-                <div className="min-h-screen relative pb-10">
-                    {/* Toast Notification */}
-                    {toastMsg && (
-                        <div className="fixed top-4 right-4 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-xl z-[60] flex items-center fade-in">
-                            <i className="fa-solid fa-circle-info mr-3 text-blue-400"></i>
-                            <span className="text-sm font-medium">{toastMsg}</span>
-                        </div>
-                    )}
+                <div className="min-h-screen relative pb-10" style={{background:'linear-gradient(180deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%)'}}>
+                    {toastMsg && (<div className="fixed top-4 right-4 z-[60] fade-in"><div className="glass px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3"><i className="fa-solid fa-circle-info text-purple-400"></i><span className="text-sm font-medium text-white/90">{toastMsg}</span></div></div>)}
 
-                    {}
-                    <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 sticky top-0 z-40">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                                <i className="fa-solid fa-building-columns text-blue-600 mr-1"></i>
-                                SIPEKAT Koperasi Karyawan Adaro Karya Mandiri
-                                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-300">
-                                    <i className="fa-solid fa-cloud-arrow-up mr-1"></i>Sinkron
-                                </span>
-                            </h1>
-                            <p className="text-sm text-slate-500 font-medium mt-1">Sistem Pemantauan & Eskalasi Kredit Terpadu</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <button onClick={fetchData} disabled={isRefreshing} className="mr-2 p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-600 rounded-full transition-colors outline-none">
-                                <i className={`fa-solid fa-arrows-rotate text-lg ${isRefreshing ? 'animate-spin text-blue-600' : ''}`}></i>
-                            </button>
-                            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto">
-                                <button onClick={() => setActiveTab('laporan')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'laporan' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
-                                    <i className="fa-solid fa-chart-line mr-2"></i> Laporan
-                                </button>
-                                <button onClick={() => setActiveTab('pemantauan')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'pemantauan' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
-                                    <i className="fa-solid fa-users mr-2"></i> Pemantauan
-                                </button>
-                                <button onClick={() => setActiveTab('matriks')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'matriks' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
-                                    <i className="fa-solid fa-table-cells mr-2"></i> Matriks Risiko
-                                </button>
-                                <button onClick={() => setActiveTab('penghapusan')} className={`px-3 py-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all ${activeTab === 'penghapusan' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>
-                                    <i className="fa-solid fa-briefcase mr-2"></i> Penyelesaian
-                                </button>
+                    <header className="sticky top-0 z-40 glass border-b border-white/5 px-6 py-4">
+                        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h1 className="text-xl font-800 tracking-tight flex items-center gap-3">
+                                    <span className="gradient-accent w-9 h-9 rounded-lg flex items-center justify-center"><i className="fa-solid fa-building-columns text-white text-sm"></i></span>
+                                    <span data-template-id="app-title" className="canva-text bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">SIPEKAT Koperasi Adaro</span>
+                                    <span data-template-id="sync-badge" className="canva-tag text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30"><i className="fa-solid fa-signal mr-1"></i>Live</span>
+                                </h1>
+                                <p data-template-id="app-subtitle" className="canva-text text-sm text-white/40 mt-1 ml-12">Sistem Pemantauan & Eskalasi Kredit Terpadu</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button onClick={fetchData} disabled={isRefreshing} className="p-2.5 rounded-xl glass hover:bg-white/10 transition-all"><i className={`fa-solid fa-arrows-rotate text-white/60 ${isRefreshing?'animate-spin text-purple-400':''}`}></i></button>
+                                <div className="flex gap-1 p-1 rounded-xl glass overflow-x-auto">
+                                    {[['laporan','fa-chart-line','Laporan'],['pemantauan','fa-users','Pemantauan'],['matriks','fa-table-cells','Matriks'],['penghapusan','fa-briefcase','Penyelesaian']].map(([id,icon,label])=>(
+                                        <button key={id} onClick={()=>setActiveTab(id)} className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${activeTab===id?'tab-active':'text-white/50 hover:text-white/80 hover:bg-white/5'}`}>
+                                            <i className={`fa-solid ${icon} mr-1.5`}></i>{id==='laporan'?<span data-template-id="tab-laporan" className="canva-text">{label}</span>:id==='pemantauan'?<span data-template-id="tab-pemantauan" className="canva-text">{label}</span>:id==='matriks'?<span data-template-id="tab-matriks" className="canva-text">{label}</span>:<span data-template-id="tab-penyelesaian" className="canva-text">{label}</span>}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </header>
 
                     <main className="p-6 max-w-7xl mx-auto">
-                        
-                        {}
-                        {/* TAB LAPORAN BULANAN (MANUAL RINCI) */}
-                        {activeTab === 'laporan' && (
+
+                        {activeTab==='laporan' && (
                             <div className="fade-in">
                                 <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-800">Laporan Rincian Pemotongan & Tunggakan</h2>
-                                        <p className="text-slate-500 text-sm mt-1">Input manual riwayat transaksi dan gagal bayar anggota</p>
+                                        <h2 data-template-id="laporan-heading" className="canva-text text-xl font-bold text-white">Laporan Pemotongan & Tunggakan</h2>
+                                        <p data-template-id="laporan-subheading" className="canva-text text-white/40 text-sm mt-1">Input manual riwayat transaksi dan gagal bayar</p>
                                     </div>
-                                    <button onClick={() => setLaporanModal(true)} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
-                                        <i className="fa-solid fa-plus mr-2"></i> Input Laporan Anggota
+                                    <button onClick={()=>setLaporanModal(true)} className="gradient-accent hover:opacity-90 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2">
+                                        <i className="fa-solid fa-plus"></i><span data-template-id="btn-input-laporan" className="canva-button">Input Laporan</span>
                                     </button>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
-                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Akumulasi Potongan</div>
-                                        <div className="text-2xl font-bold text-slate-800">Rp {ringkasanLaporan.totalPotongan.toLocaleString('id-ID')}</div>
+                                    <div className="glass rounded-2xl p-5 card-hover">
+                                        <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 gradient-cool rounded-xl flex items-center justify-center"><i className="fa-solid fa-coins text-white text-sm"></i></div><span data-template-id="stat-potongan-label" className="canva-text text-sm text-white/50">Total Potongan</span></div>
+                                        <div className="text-2xl font-800 text-white">Rp {rk.totalPotongan.toLocaleString('id-ID')}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm border-l-4 border-l-yellow-500">
-                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Sisa Pending (Tunggakan)</div>
-                                        <div className="text-2xl font-bold text-red-600">Rp {ringkasanLaporan.totalPending.toLocaleString('id-ID')}</div>
+                                    <div className="glass rounded-2xl p-5 card-hover">
+                                        <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 gradient-warm rounded-xl flex items-center justify-center"><i className="fa-solid fa-exclamation-triangle text-white text-sm"></i></div><span data-template-id="stat-pending-label" className="canva-text text-sm text-white/50">Sisa Pending</span></div>
+                                        <div className="text-2xl font-800 text-rose-300">Rp {rk.totalPending.toLocaleString('id-ID')}</div>
                                     </div>
-                                    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm border-l-4 border-l-slate-700">
-                                        <div className="text-sm font-medium text-slate-500 mb-1">Total Sisa Outstanding Keseluruhan</div>
-                                        <div className="text-2xl font-bold text-slate-800">Rp {ringkasanLaporan.totalOutstanding.toLocaleString('id-ID')}</div>
+                                    <div className="glass rounded-2xl p-5 card-hover">
+                                        <div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 gradient-gold rounded-xl flex items-center justify-center"><i className="fa-solid fa-wallet text-white text-sm"></i></div><span data-template-id="stat-outstanding-label" className="canva-text text-sm text-white/50">Outstanding</span></div>
+                                        <div className="text-2xl font-800 text-white">Rp {rk.totalOutstanding.toLocaleString('id-ID')}</div>
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700 flex justify-between items-center">
-                                        <span>Data Rekapitulasi Manual</span>
+                                <div className="glass rounded-2xl overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center">
+                                        <span data-template-id="table-laporan-title" className="canva-text font-bold text-white/80">Data Rekapitulasi</span>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
-                                            <thead className="text-slate-600 border-b border-slate-200 bg-slate-100">
-                                                <tr>
-                                                    <th className="px-4 py-3 font-semibold">Periode</th>
-                                                    <th className="px-4 py-3 font-semibold">Nama / NRP</th>
-                                                    <th className="px-4 py-3 font-semibold">Site / Bank</th>
-                                                    <th className="px-4 py-3 font-semibold">Pinjaman & Simpanan</th>
-                                                    <th className="px-4 py-3 font-semibold">Total Potongan</th>
-                                                    <th className="px-4 py-3 font-semibold text-red-600">Sisa Pending</th>
-                                                    <th className="px-4 py-3 font-semibold">Sisa Outstanding</th>
-                                                    <th className="px-4 py-3 font-semibold">Keterangan</th>
-                                                </tr>
+                                            <thead className="text-white/40 border-b border-white/5 bg-white/[0.02]">
+                                                <tr><th className="px-4 py-3 font-semibold">Periode</th><th className="px-4 py-3 font-semibold">Nama/NRP</th><th className="px-4 py-3 font-semibold">Site/Bank</th><th className="px-4 py-3 font-semibold">Pinjaman</th><th className="px-4 py-3 font-semibold">Total Potongan</th><th className="px-4 py-3 font-semibold text-rose-300">Sisa Pending</th><th className="px-4 py-3 font-semibold">Outstanding</th><th className="px-4 py-3 font-semibold">Status</th></tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {reports.map((rep) => (
-                                                    <tr key={rep.id} className="hover:bg-slate-50">
-                                                        <td className="px-4 py-4 font-bold text-slate-800">{rep.periode}</td>
-                                                        <td className="px-4 py-4">
-                                                            <div className="font-semibold">{rep.nama}</div>
-                                                            <div className="text-xs text-slate-500">NRP: {rep.nrp}</div>
-                                                        </td>
-                                                        <td className="px-4 py-4 text-xs">
-                                                            <div className="font-medium text-slate-700">{rep.site}</div>
-                                                            <div className="text-slate-500">{rep.bank_potongan} - {rep.no_rek}</div>
-                                                        </td>
-                                                        <td className="px-4 py-4 text-xs">
-                                                            <div>Jml: Rp {Number(rep.jumlah).toLocaleString('id-ID')}</div>
-                                                            <div>Wajib: Rp {Number(rep.simpanan_wajib).toLocaleString('id-ID')}</div>
-                                                            <div>Suka: Rp {Number(rep.sukarela).toLocaleString('id-ID')}</div>
-                                                        </td>
-                                                        <td className="px-4 py-4 font-bold text-blue-700">Rp {Number(rep.total_potongan).toLocaleString('id-ID')}</td>
-                                                        <td className="px-4 py-4 font-bold text-red-600">Rp {Number(rep.sisa_pending).toLocaleString('id-ID')}</td>
-                                                        <td className="px-4 py-4 font-medium text-slate-700">Rp {Number(rep.sisa_outstanding).toLocaleString('id-ID')}</td>
-                                                        <td className="px-4 py-4">
-                                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${rep.keterangan === 'Sudah Konfirmasi' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                                                {rep.keterangan}
-                                                            </span>
-                                                        </td>
+                                            <tbody className="divide-y divide-white/5">
+                                                {reports.map(rep=>(
+                                                    <tr key={rep.id} className="hover:bg-white/[0.03] transition-colors">
+                                                        <td className="px-4 py-4 font-bold text-white/90">{rep.periode}</td>
+                                                        <td className="px-4 py-4"><div className="font-semibold text-white/80">{rep.nama}</div><div className="text-xs text-white/30">NRP: {rep.nrp}</div></td>
+                                                        <td className="px-4 py-4 text-xs"><div className="text-white/60">{rep.site}</div><div className="text-white/30">{rep.bank_potongan} - {rep.no_rek}</div></td>
+                                                        <td className="px-4 py-4 text-xs text-white/50"><div>Rp {Number(rep.jumlah).toLocaleString('id-ID')}</div></td>
+                                                        <td className="px-4 py-4 font-bold text-purple-300">Rp {Number(rep.total_potongan).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-4 font-bold text-rose-300">Rp {Number(rep.sisa_pending).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-4 text-white/70">Rp {Number(rep.sisa_outstanding).toLocaleString('id-ID')}</td>
+                                                        <td className="px-4 py-4"><span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${rep.keterangan==='Sudah Konfirmasi'?'bg-emerald-500/20 text-emerald-300':'bg-amber-500/20 text-amber-300'}`}>{rep.keterangan}</span></td>
                                                     </tr>
                                                 ))}
-                                                {reports.length === 0 && (
-                                                    <tr><td colSpan="8" className="text-center py-8 text-slate-500">Belum ada rincian laporan yang diinput</td></tr>
-                                                )}
+                                                {reports.length===0 && <tr><td colSpan="8" className="text-center py-12 text-white/30">Belum ada data</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -395,60 +209,29 @@
                             </div>
                         )}
 
-                        {}
-                        {/* TAB PEMANTAUAN */}
-                        {activeTab === 'pemantauan' && (
+                        {activeTab==='pemantauan' && (
                             <div className="fade-in">
-                                <div className="mb-6">
-                                    <h2 className="text-xl font-bold text-slate-800">Daftar Kelancaran Pinjaman (Kalkulasi Otomatis)</h2>
-                                </div>
-                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                <h2 data-template-id="pemantauan-heading" className="canva-text text-xl font-bold text-white mb-6">Pemantauan Kelancaran Pinjaman</h2>
+                                <div className="glass rounded-2xl overflow-hidden">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
-                                            <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                                                <tr>
-                                                    <th className="px-6 py-4 font-semibold">Nama Anggota</th>
-                                                    <th className="px-6 py-4 font-semibold">Sisa Pinjaman</th>
-                                                    <th className="px-6 py-4 font-semibold">Tagihan dan Bayar</th>
-                                                    <th className="px-6 py-4 font-semibold">Status</th>
-                                                    <th className="px-6 py-4 font-semibold text-right">Aksi</th>
-                                                </tr>
+                                            <thead className="text-white/40 border-b border-white/5 bg-white/[0.02]">
+                                                <tr><th className="px-6 py-4 font-semibold">Anggota</th><th className="px-6 py-4 font-semibold">Sisa Pinjaman</th><th className="px-6 py-4 font-semibold">Tagihan/Bayar</th><th className="px-6 py-4 font-semibold">Status</th><th className="px-6 py-4 font-semibold text-right">Aksi</th></tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {loans.map((loan) => (
-                                                    <tr key={loan.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4">
-                                                            <div className="font-semibold text-slate-800">{loan.nama}</div>
-                                                            <div className="text-xs text-slate-500 mt-0.5">NIK {loan.nik}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 font-medium text-slate-700">Rp {Number(loan.sisa).toLocaleString('id-ID')}</td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="text-slate-800">Rp {Number(loan.kewajibanTotal).toLocaleString('id-ID')}</div>
-                                                            <div className={`text-xs mt-1 font-medium ${Number(loan.bayar_bulan_ini) < Number(loan.kewajibanTotal) ? 'text-red-500' : 'text-green-600'}`}>
-                                                                Bayar Rp {Number(loan.bayar_bulan_ini).toLocaleString('id-ID')}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.status)}`}>
-                                                                {getStatusIcon(loan.status)}
-                                                                {loan.status}
-                                                            </span>
-                                                        </td>
+                                            <tbody className="divide-y divide-white/5">
+                                                {loans.map(loan=>(
+                                                    <tr key={loan.id} className="hover:bg-white/[0.03] transition-colors">
+                                                        <td className="px-6 py-4"><div className="font-semibold text-white/90">{loan.nama}</div><div className="text-xs text-white/30 mt-0.5">NIK {loan.nik}</div></td>
+                                                        <td className="px-6 py-4 font-medium text-white/70">Rp {Number(loan.sisa).toLocaleString('id-ID')}</td>
+                                                        <td className="px-6 py-4"><div className="text-white/80">Rp {Number(loan.kewajibanTotal).toLocaleString('id-ID')}</div><div className={`text-xs mt-1 font-medium ${Number(loan.bayar_bulan_ini)<Number(loan.kewajibanTotal)?'text-rose-400':'text-emerald-400'}`}>Bayar Rp {Number(loan.bayar_bulan_ini).toLocaleString('id-ID')}</div></td>
+                                                        <td className="px-6 py-4"><span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${getStatusColor(loan.status)}`}>{loan.status}</span></td>
                                                         <td className="px-6 py-4 text-right">
-                                                            {(loan.status === 'Telat 1 Bulan' || loan.status === 'Telat 2 Bulan') && (
-                                                                <button onClick={() => setKunjunganModal({ open: true, loan })} className="px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg">
-                                                                    Kunjungan
-                                                                </button>
-                                                            )}
-                                                            {(loan.status === 'Telat 3 Bulan (Macet)' || loan.status === 'Gagal Debit') && (
-                                                                <button onClick={() => setReskedulModal({ open: true, loan })} className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg">
-                                                                    Re-Skedul
-                                                                </button>
-                                                            )}
+                                                            {(loan.status==='Telat 1 Bulan'||loan.status==='Telat 2 Bulan') && <button onClick={()=>setKunjunganModal({open:true,loan})} className="px-3 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-all">Kunjungan</button>}
+                                                            {(loan.status==='Telat 3 Bulan (Macet)'||loan.status==='Gagal Debit') && <button onClick={()=>setReskedulModal({open:true,loan})} className="px-3 py-1.5 text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-all">Re-Skedul</button>}
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {loans.length === 0 && (<tr><td colSpan="5" className="text-center py-8 text-slate-500">Data kosong</td></tr>)}
+                                                {loans.length===0 && <tr><td colSpan="5" className="text-center py-12 text-white/30">Data kosong</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -456,181 +239,79 @@
                             </div>
                         )}
 
-                        {}
-                        {/* TAB MATRIKS RISIKO */}
-                        {activeTab === 'matriks' && (
+                        {activeTab==='matriks' && (
                             <div className="fade-in">
-                                <div className="mb-6">
-                                    <h2 className="text-xl font-bold text-slate-800">Matriks Risiko Keterlambatan</h2>
-                                </div>
+                                <h2 data-template-id="matriks-heading" className="canva-text text-xl font-bold text-white mb-6">Matriks Risiko</h2>
                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-green-500">
-                                        <div className="text-sm font-medium text-slate-500">Lancar</div>
-                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.lancar}</div>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-blue-400">
-                                        <div className="text-sm font-medium text-slate-500">Parsial</div>
-                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.parsial}</div>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-yellow-400">
-                                        <div className="text-sm font-medium text-slate-500">Telat 1 Bulan</div>
-                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.telat1}</div>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-orange-500">
-                                        <div className="text-sm font-medium text-slate-500">Telat 2 Bulan</div>
-                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.telat2}</div>
-                                    </div>
-                                    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm border-l-4 border-l-red-600">
-                                        <div className="text-sm font-medium text-slate-500">Macet</div>
-                                        <div className="text-2xl font-bold text-slate-800 mt-1">{matrixStats.telat3}</div>
-                                    </div>
+                                    {[['Lancar',ms.lancar,'from-emerald-500 to-teal-600'],['Parsial',ms.parsial,'from-sky-500 to-blue-600'],['Telat 1',ms.telat1,'from-amber-400 to-yellow-600'],['Telat 2',ms.telat2,'from-orange-500 to-red-500'],['Macet',ms.telat3,'from-rose-500 to-pink-700']].map(([label,count,grad],i)=>(
+                                        <div key={i} className="glass rounded-2xl p-5 card-hover text-center">
+                                            <div className={`w-12 h-12 mx-auto rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center mb-3 shadow-lg`}>
+                                                <span className="text-white font-800 text-lg">{count}</span>
+                                            </div>
+                                            <div className="text-xs font-semibold text-white/50">{i===0?<span data-template-id="matrix-lancar-label" className="canva-text">{label}</span>:i===1?<span data-template-id="matrix-parsial-label" className="canva-text">{label}</span>:i===2?<span data-template-id="matrix-telat1-label" className="canva-text">{label}</span>:i===3?<span data-template-id="matrix-telat2-label" className="canva-text">{label}</span>:<span data-template-id="matrix-macet-label" className="canva-text">{label}</span>}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center text-slate-500">
-                                    Gunakan filter matriks ini untuk memetakan penanganan anggota berdasarkan lama tunggakan.
-                                </div>
+                                <div className="glass rounded-2xl p-6 text-center"><span data-template-id="matriks-hint" className="canva-text text-white/40 text-sm">Gunakan matriks ini untuk memetakan penanganan anggota berdasarkan lama tunggakan.</span></div>
                             </div>
                         )}
 
-                        {}
-                        {/* TAB PENYELESAIAN */}
-                        {activeTab === 'penghapusan' && (
+                        {activeTab==='penghapusan' && (
                             <div className="fade-in">
                                 <div className="mb-6 flex justify-between items-center">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-800">Penyelesaian Pinjaman Macet</h2>
-                                    </div>
-                                    <button onClick={() => setPengajuanModal({ open: true })} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
-                                        Ajukan Kasus
-                                    </button>
+                                    <h2 data-template-id="penyelesaian-heading" className="canva-text text-xl font-bold text-white">Penyelesaian Pinjaman Macet</h2>
+                                    <button onClick={()=>setPengajuanModal({open:true})} className="gradient-accent hover:opacity-90 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-purple-500/20"><span data-template-id="btn-ajukan-kasus" className="canva-button">Ajukan Kasus</span></button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {writeoffs.length === 0 ? (
-                                        <div className="col-span-full py-16 text-center bg-white rounded-xl border border-dashed border-slate-300">
-                                            Data penyelesaian kosong.
-                                        </div>
-                                    ) : (
-                                        writeoffs.map((caseItem) => (
-                                            <div key={caseItem.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div>
-                                                        <h3 className="font-bold text-slate-800">{caseItem.nama}</h3>
-                                                        <p className="text-xs text-slate-500 mt-1">Sisa <span className="text-red-600 font-bold">Rp {Number(caseItem.sisaHutang).toLocaleString('id-ID')}</span></p>
-                                                    </div>
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${caseItem.status === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                        {caseItem.status || 'Menunggu'}
-                                                    </span>
-                                                </div>
-                                                <div className="bg-slate-50 rounded-lg p-3 text-sm mb-4">
-                                                    <div className="font-semibold text-slate-700">Alasan</div>
-                                                    <div className="text-slate-600 mb-2">{caseItem.alasan}</div>
-                                                    <div className="font-semibold text-slate-700">Sumber</div>
-                                                    <div className="text-slate-600">{caseItem.sumberDana || '-'}</div>
-                                                </div>
-                                                <div className="mt-auto">
-                                                    <button onClick={() => setApprovalModal({ open: true, caseData: caseItem })} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-lg text-sm font-medium">
-                                                        Ruang Keputusan
-                                                    </button>
-                                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                    {writeoffs.length===0 ? <div className="col-span-full py-16 text-center glass rounded-2xl border-dashed border border-white/10"><span data-template-id="penyelesaian-empty" className="canva-text text-white/30">Data kosong</span></div> :
+                                    writeoffs.map(c=>(
+                                        <div key={c.id} className="glass rounded-2xl p-5 flex flex-col card-hover">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div><h3 className="font-bold text-white">{c.nama}</h3><p className="text-xs text-white/40 mt-1">Sisa <span className="text-rose-300 font-bold">Rp {Number(c.sisaHutang).toLocaleString('id-ID')}</span></p></div>
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${c.status==='Disetujui'?'bg-emerald-500/20 text-emerald-300':'bg-amber-500/20 text-amber-300'}`}>{c.status||'Menunggu'}</span>
                                             </div>
-                                        ))
-                                    )}
+                                            <div className="bg-white/[0.03] rounded-xl p-3 text-sm mb-4 border border-white/5">
+                                                <div className="font-semibold text-white/50 text-xs uppercase mb-1">Alasan</div><div className="text-white/70 mb-2">{c.alasan}</div>
+                                                <div className="font-semibold text-white/50 text-xs uppercase mb-1">Sumber</div><div className="text-white/70">{c.sumberDana||'-'}</div>
+                                            </div>
+                                            <div className="mt-auto"><button onClick={()=>setApprovalModal({open:true,caseData:c})} className="w-full gradient-accent hover:opacity-90 text-white py-2.5 rounded-xl text-sm font-semibold"><span data-template-id="btn-ruang-keputusan" className="canva-button">Ruang Keputusan</span></button></div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
-                        {}
-                        {/* Modal Laporan Manual */}
+                        {/* Modal Laporan */}
                         {laporanModal && (
-                            <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 fade-in overflow-y-auto">
-                                <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl my-8">
-                                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-800 rounded-t-xl flex justify-between items-center">
-                                        <h3 className="text-lg font-bold text-white">Input Rincian Laporan Pemotongan & Tunggakan</h3>
-                                        <button onClick={() => setLaporanModal(false)} className="text-slate-300 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+                            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in overflow-y-auto">
+                                <div className="glass-light rounded-2xl shadow-2xl w-full max-w-4xl my-8 text-slate-800">
+                                    <div className="px-6 py-4 gradient-accent rounded-t-2xl flex justify-between items-center">
+                                        <h3 data-template-id="modal-laporan-title" className="canva-text text-lg font-bold text-white">Input Laporan Pemotongan</h3>
+                                        <button onClick={()=>setLaporanModal(false)} className="text-white/60 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
                                     </div>
                                     <form onSubmit={handleSimpanLaporan} className="p-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                            {/* Baris 1 */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Periode (Bulan)</label>
-                                                <input type="month" name="periode" required className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Nama Anggota</label>
-                                                <input type="text" name="nama" required placeholder="Masukkan Nama" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">NRP</label>
-                                                <input type="text" name="nrp" required placeholder="NRP/NIK" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-
-                                            {/* Baris 2 */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Site Lokasi</label>
-                                                <input type="text" name="site" placeholder="Misal: Site A" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Bank Potongan</label>
-                                                <input type="text" name="bank_potongan" placeholder="Misal: Mandiri" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">No Rekening</label>
-                                                <input type="text" name="no_rek" placeholder="Nomor Rekening" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-
-                                            {/* Baris 3 */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Jumlah Pinjaman (Rp)</label>
-                                                <input type="number" name="jumlah" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Simpanan Wajib (Rp)</label>
-                                                <input type="number" name="simpanan_wajib" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Simpanan Sukarela (Rp)</label>
-                                                <input type="number" name="sukarela" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-
-                                            {/* Baris 4 */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Potongan Kena Bunga (Rp)</label>
-                                                <input type="number" name="potongan_kena_bunga" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Denda Admin 1.5% (Rp)</label>
-                                                <input type="number" name="denda" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-red-600 font-medium" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Total Potongan Bulan Ini (Rp)</label>
-                                                <input type="number" name="total_potongan" defaultValue={0} className="w-full border border-blue-400 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-600 bg-blue-50 font-bold" />
-                                            </div>
-
-                                            {/* Baris 5 */}
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Sisa Outstanding (Rp)</label>
-                                                <input type="number" name="sisa_outstanding" defaultValue={0} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Sisa Pending/Tunggakan (Rp)</label>
-                                                <input type="number" name="sisa_pending" defaultValue={0} className="w-full border border-red-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-red-500 bg-red-50 font-bold text-red-600" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Keterangan / Status</label>
-                                                <select name="keterangan" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
-                                                    <option value="Sudah Konfirmasi">Sudah Konfirmasi</option>
-                                                    <option value="Menunggu Jawaban">Menunggu Jawaban</option>
-                                                    <option value="Tidak Ada Jawaban">Tidak Ada Jawaban</option>
-                                                    <option value="Resign/PHK">Resign/PHK</option>
-                                                    <option value="Lainnya">Lainnya...</option>
-                                                </select>
-                                            </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Periode</label><input type="month" name="periode" required className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 bg-white" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Nama</label><input type="text" name="nama" required placeholder="Nama Anggota" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">NRP</label><input type="text" name="nrp" required placeholder="NRP/NIK" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Site</label><input type="text" name="site" placeholder="Site A" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Bank</label><input type="text" name="bank_potongan" placeholder="Mandiri" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">No Rek</label><input type="text" name="no_rek" placeholder="No Rekening" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Jumlah Pinjaman</label><input type="number" name="jumlah" defaultValue={0} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Simpanan Wajib</label><input type="number" name="simpanan_wajib" defaultValue={0} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Sukarela</label><input type="number" name="sukarela" defaultValue={0} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Potongan Bunga</label><input type="number" name="potongan_kena_bunga" defaultValue={0} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Denda 1.5%</label><input type="number" name="denda" defaultValue={0} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 text-rose-600" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Total Potongan</label><input type="number" name="total_potongan" defaultValue={0} className="w-full border border-purple-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 bg-purple-50 font-bold" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Sisa Outstanding</label><input type="number" name="sisa_outstanding" defaultValue={0} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Sisa Pending</label><input type="number" name="sisa_pending" defaultValue={0} className="w-full border border-rose-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 bg-rose-50 font-bold text-rose-600" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Keterangan</label><select name="keterangan" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400"><option value="Sudah Konfirmasi">Sudah Konfirmasi</option><option value="Menunggu Jawaban">Menunggu Jawaban</option><option value="Tidak Ada Jawaban">Tidak Ada Jawaban</option><option value="Resign/PHK">Resign/PHK</option><option value="Lainnya">Lainnya</option></select></div>
                                         </div>
-
-                                        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-200">
-                                            <button type="button" onClick={() => setLaporanModal(false)} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-lg">Batal</button>
-                                            <button type="submit" disabled={isRefreshing} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md flex items-center">
-                                                {isRefreshing ? <i className="fa-solid fa-spinner animate-spin mr-2"></i> : <i className="fa-solid fa-paper-plane mr-2"></i>}
-                                                {isRefreshing ? 'Menyimpan...' : 'Kirim & Simpan Data'}
+                                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-200">
+                                            <button type="button" onClick={()=>setLaporanModal(false)} className="px-5 py-2.5 text-slate-500 font-medium hover:bg-slate-100 rounded-xl"><span data-template-id="modal-laporan-btn-batal" className="canva-button">Batal</span></button>
+                                            <button type="submit" disabled={isRefreshing} className="px-6 py-2.5 gradient-accent text-white font-bold rounded-xl shadow-lg flex items-center gap-2">
+                                                {isRefreshing?<i className="fa-solid fa-spinner animate-spin"></i>:<i className="fa-solid fa-paper-plane"></i>}
+                                                <span data-template-id="modal-laporan-btn-submit" className="canva-button">{isRefreshing?'Menyimpan...':'Simpan Data'}</span>
                                             </button>
                                         </div>
                                     </form>
@@ -638,93 +319,60 @@
                             </div>
                         )}
 
-                        {/* Modals Lainnya */}
                         {kunjunganModal.open && (
-                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Jadwal Kunjungan</h3>
-                                    <form onSubmit={handleSimpanKunjungan}>
-                                        <input type="date" required className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4" />
-                                        <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => setKunjunganModal({ open: false, loan: null })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
-                                            <button type="submit" className="px-4 py-2 bg-yellow-500 text-white rounded-lg">Tetapkan</button>
-                                        </div>
+                            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
+                                <div className="glass-light rounded-2xl shadow-2xl w-full max-w-md p-6 text-slate-800">
+                                    <h3 data-template-id="modal-kunjungan-title" className="canva-text text-lg font-bold mb-4">Jadwal Kunjungan</h3>
+                                    <form onSubmit={handleSimpanKunjungan}><input type="date" required className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mb-4 outline-none focus:ring-2 focus:ring-purple-400" />
+                                        <div className="flex justify-end gap-3"><button type="button" onClick={()=>setKunjunganModal({open:false,loan:null})} className="px-4 py-2 hover:bg-slate-100 rounded-xl"><span data-template-id="modal-kunjungan-btn-batal" className="canva-button">Batal</span></button><button type="submit" className="px-4 py-2 gradient-gold text-white rounded-xl font-semibold"><span data-template-id="modal-kunjungan-btn-submit" className="canva-button">Tetapkan</span></button></div>
                                     </form>
                                 </div>
                             </div>
                         )}
 
                         {reskedulModal.open && (
-                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Eskalasi Re-Skedul</h3>
+                            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
+                                <div className="glass-light rounded-2xl shadow-2xl w-full max-w-md p-6 text-slate-800">
+                                    <h3 data-template-id="modal-reskedul-title" className="canva-text text-lg font-bold mb-4">Eskalasi Re-Skedul</h3>
                                     <form onSubmit={handleSimpanReskedul}>
-                                        <div className="space-y-3 mb-6">
-                                            <label className="flex items-center gap-3"><input type="checkbox" required /> Persetujuan Re-skedul</label>
-                                            <label className="flex items-center gap-3"><input type="checkbox" required /> Kuasa Potong Gaji</label>
-                                        </div>
-                                        <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => setReskedulModal({ open: false, loan: null })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
-                                            <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded-lg">Proses Dokumen</button>
-                                        </div>
+                                        <div className="space-y-3 mb-6"><label className="flex items-center gap-3"><input type="checkbox" required className="accent-purple-600" /><span data-template-id="reskedul-check1" className="canva-text">Persetujuan Re-skedul</span></label><label className="flex items-center gap-3"><input type="checkbox" required className="accent-purple-600" /><span data-template-id="reskedul-check2" className="canva-text">Kuasa Potong Gaji</span></label></div>
+                                        <div className="flex justify-end gap-3"><button type="button" onClick={()=>setReskedulModal({open:false,loan:null})} className="px-4 py-2 hover:bg-slate-100 rounded-xl"><span data-template-id="modal-reskedul-btn-batal" className="canva-button">Batal</span></button><button type="submit" className="px-4 py-2 bg-rose-500 text-white rounded-xl font-semibold"><span data-template-id="modal-reskedul-btn-submit" className="canva-button">Proses</span></button></div>
                                     </form>
                                 </div>
                             </div>
                         )}
 
                         {pengajuanModal.open && (
-                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Ajukan Kasus Penghapusan</h3>
+                            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
+                                <div className="glass-light rounded-2xl shadow-2xl w-full max-w-md p-6 text-slate-800">
+                                    <h3 data-template-id="modal-pengajuan-title" className="canva-text text-lg font-bold mb-4">Ajukan Kasus</h3>
                                     <form onSubmit={handleAjukanKasus}>
-                                        <select name="loanId" required className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
-                                            <option value="">Pilih Anggota</option>
-                                            {loans.filter(l => l.status === 'Gagal Debit' || l.status === 'Telat 3 Bulan (Macet)').map(l => (
-                                                <option key={l.id} value={l.id}>{l.nama}</option>
-                                            ))}
-                                        </select>
-                                        <select name="alasan" required className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-6">
-                                            <option value="Cacat Permanen">Cacat Permanen</option>
-                                            <option value="Meninggal Dunia">Meninggal Dunia</option>
-                                        </select>
-                                        <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => setPengajuanModal({ open: false })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
-                                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Kirim</button>
-                                        </div>
+                                        <select name="loanId" required className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mb-4 outline-none focus:ring-2 focus:ring-purple-400"><option value="">Pilih Anggota</option>{loans.filter(l=>l.status==='Gagal Debit'||l.status==='Telat 3 Bulan (Macet)').map(l=><option key={l.id} value={l.id}>{l.nama}</option>)}</select>
+                                        <select name="alasan" required className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mb-6 outline-none focus:ring-2 focus:ring-purple-400"><option value="Cacat Permanen">Cacat Permanen</option><option value="Meninggal Dunia">Meninggal Dunia</option></select>
+                                        <div className="flex justify-end gap-3"><button type="button" onClick={()=>setPengajuanModal({open:false})} className="px-4 py-2 hover:bg-slate-100 rounded-xl"><span data-template-id="modal-pengajuan-btn-batal" className="canva-button">Batal</span></button><button type="submit" className="px-4 py-2 gradient-accent text-white rounded-xl font-semibold"><span data-template-id="modal-pengajuan-btn-submit" className="canva-button">Kirim</span></button></div>
                                     </form>
                                 </div>
                             </div>
                         )}
 
                         {approvalModal.open && (
-                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-4">Ruang Keputusan</h3>
+                            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
+                                <div className="glass-light rounded-2xl shadow-2xl w-full max-w-md p-6 text-slate-800">
+                                    <h3 data-template-id="modal-approval-title" className="canva-text text-lg font-bold mb-4">Ruang Keputusan</h3>
                                     <form onSubmit={handleApproval}>
-                                        <div className="mb-4 text-xl font-bold text-red-600">Sisa: Rp {Number(approvalModal.caseData?.sisaHutang || 0).toLocaleString('id-ID')}</div>
-                                        <select name="sumberDana" defaultValue={approvalModal.caseData?.sumberDana} className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
-                                            <option value="Dana Asuransi">Dana Asuransi</option>
-                                            <option value="Dana Cadangan">Dana Cadangan Koperasi</option>
-                                        </select>
-                                        <input type="number" name="nilaiPenyelesaian" defaultValue={approvalModal.caseData?.nilaiPenyelesaian || approvalModal.caseData?.sisaHutang} className="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4" />
-                                        <div className="space-y-3 mb-6">
-                                            <label className="flex items-center gap-3"><input type="checkbox" name="keputusanManajer" defaultChecked={approvalModal.caseData?.status === 'Disetujui'} /> Approval Manajer</label>
-                                            <label className="flex items-center gap-3"><input type="checkbox" name="keputusanPengurus" defaultChecked={approvalModal.caseData?.status === 'Disetujui'} /> Approval Pengurus</label>
-                                        </div>
-                                        <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => setApprovalModal({ open: false, caseData: null })} className="px-4 py-2 hover:bg-slate-100 rounded-lg">Batal</button>
-                                            <button type="submit" className="px-4 py-2 bg-slate-900 text-white rounded-lg">Simpan</button>
-                                        </div>
+                                        <div className="mb-4 text-xl font-800 text-rose-600">Sisa: Rp {Number(approvalModal.caseData?.sisaHutang||0).toLocaleString('id-ID')}</div>
+                                        <select name="sumberDana" defaultValue={approvalModal.caseData?.sumberDana} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mb-4 outline-none focus:ring-2 focus:ring-purple-400"><option value="Dana Asuransi">Dana Asuransi</option><option value="Dana Cadangan">Dana Cadangan Koperasi</option></select>
+                                        <input type="number" name="nilaiPenyelesaian" defaultValue={approvalModal.caseData?.nilaiPenyelesaian||approvalModal.caseData?.sisaHutang} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 mb-4 outline-none focus:ring-2 focus:ring-purple-400" />
+                                        <div className="space-y-3 mb-6"><label className="flex items-center gap-3"><input type="checkbox" name="keputusanManajer" className="accent-purple-600" defaultChecked={approvalModal.caseData?.status==='Disetujui'} /><span data-template-id="approval-check-manajer" className="canva-text">Approval Manajer</span></label><label className="flex items-center gap-3"><input type="checkbox" name="keputusanPengurus" className="accent-purple-600" defaultChecked={approvalModal.caseData?.status==='Disetujui'} /><span data-template-id="approval-check-pengurus" className="canva-text">Approval Pengurus</span></label></div>
+                                        <div className="flex justify-end gap-3"><button type="button" onClick={()=>setApprovalModal({open:false,caseData:null})} className="px-4 py-2 hover:bg-slate-100 rounded-xl"><span data-template-id="modal-approval-btn-batal" className="canva-button">Batal</span></button><button type="submit" className="px-4 py-2 gradient-accent text-white rounded-xl font-semibold"><span data-template-id="modal-approval-btn-submit" className="canva-button">Simpan</span></button></div>
                                     </form>
                                 </div>
                             </div>
                         )}
-
                     </main>
                 </div>
             );
         }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
