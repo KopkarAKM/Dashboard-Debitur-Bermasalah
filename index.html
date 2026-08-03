@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SIPEKAT Koperasi - Risk Analytics</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,6 +16,10 @@
 
   <style>
         * { font-family: 'DM Sans', sans-serif; }
+        
+        /* Mencegah horizontal scroll secara global pada body */
+        body { overflow-x: hidden; }
+        
         .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4,0,0.2,1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -43,27 +47,18 @@
         .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: skeletonLoading 1.5s infinite; border-radius: 8px; }
         @keyframes skeletonLoading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* Mobile-specific styles */
-        @media (max-width: 767px) {
-            .mobile-card-row { display: flex; flex-direction: column; gap: 0.75rem; }
-            .mobile-card-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; padding: 1rem; }
-            .desktop-table { display: none; }
-        }
-        @media (min-width: 768px) {
-            .mobile-card-row { display: none; }
-        }
+        /* Utilitas Responsif Tambahan */
+        .text-break-mobile { word-break: break-word; hyphens: auto; }
     </style>
  </head>
- <body class="min-h-screen text-white antialiased" style="background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%); background-attachment: fixed;">
+ <body class="min-h-screen text-white antialiased w-full" style="background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%); background-attachment: fixed;">
   <div id="root"></div>
   
   <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         
-        // URL WEB APP ANDA - GANTI JIKA ADA DEPLOYMENT BARU
         const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbynBkr_S1uZ4zbkJnJ1p9UU8rPAZ38AchBU3s9PEWZ6PoidQbXdYo-Dyh4oOH3CSDKcfg/exec';
 
-        // Constants for Risk Matrix
         const RISK_LEVELS = {
             GREEN: { id: 'GREEN', label: 'Lancar', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: 'fa-shield-check' },
             YELLOW: { id: 'YELLOW', label: 'Warning', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: 'fa-triangle-exclamation' },
@@ -100,61 +95,34 @@
                         data: {
                             labels: labels,
                             datasets: [
-                                { 
-                                    label: 'Tunggakan (Risk)', 
-                                    data: dataTunggakan, 
-                                    borderColor: '#f43f5e', 
-                                    backgroundColor: 'rgba(244, 63, 94, 0.2)', 
-                                    tension: 0.3, 
-                                    pointRadius: 4, 
-                                    borderWidth: 3,
-                                    fill: true
-                                },
-                                { 
-                                    label: 'Sisa Hutang Pokok', 
-                                    data: dataOutstanding, 
-                                    borderColor: '#3b82f6', 
-                                    backgroundColor: 'transparent', 
-                                    tension: 0.3, 
-                                    pointRadius: 4, 
-                                    borderWidth: 2,
-                                    borderDash: [5, 5]
-                                }
+                                { label: 'Tunggakan (Risk)', data: dataTunggakan, borderColor: '#f43f5e', backgroundColor: 'rgba(244, 63, 94, 0.2)', tension: 0.3, pointRadius: 4, borderWidth: 3, fill: true },
+                                { label: 'Sisa Hutang Pokok', data: dataOutstanding, borderColor: '#3b82f6', backgroundColor: 'transparent', tension: 0.3, pointRadius: 4, borderWidth: 2, borderDash: [5, 5] }
                             ]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
                             plugins: {
-                                legend: { labels: { color: 'rgba(255, 255, 255, 0.7)', font: { family: 'DM Sans', size: 12 } }, position: 'top' },
+                                legend: { labels: { color: 'rgba(255, 255, 255, 0.7)', font: { family: 'DM Sans', size: 10 } }, position: 'top' },
                                 tooltip: { 
-                                    backgroundColor: 'rgba(15, 12, 41, 0.9)', 
-                                    titleColor: '#fff', 
-                                    bodyColor: '#fff', 
-                                    borderColor: 'rgba(255,255,255,0.2)', 
-                                    borderWidth: 1, 
-                                    padding: 10, 
-                                    cornerRadius: 8,
+                                    backgroundColor: 'rgba(15, 12, 41, 0.9)', titleColor: '#fff', bodyColor: '#fff', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, padding: 10, cornerRadius: 8,
                                     callbacks: {
                                         label: function(context) {
                                             let label = context.dataset.label || '';
-                                            if (label) {
-                                                label += ': ';
-                                            }
-                                            if (context.parsed.y !== null) {
-                                                label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
-                                            }
+                                            if (label) label += ': ';
+                                            if (context.parsed.y !== null) label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
                                             return label;
                                         }
                                     }
                                 }
                             },
                             scales: {
-                                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
+                                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)', font: {size: 10} } },
                                 y: { 
                                     grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
                                     ticks: { 
                                         color: 'rgba(255, 255, 255, 0.5)',
+                                        font: {size: 10},
                                         callback: function(value) {
                                             if (value >= 1000000) return (value / 1000000) + ' Jt';
                                             return value;
@@ -175,7 +143,7 @@
             }, [history]);
 
             return (
-                <div className="h-[250px] w-full relative">
+                <div className="h-[200px] md:h-[250px] w-full relative">
                     <canvas ref={chartRef}></canvas>
                     {!window.Chart && <div className="absolute inset-0 flex items-center justify-center text-white/30 text-sm"><i className="fa-solid fa-spinner animate-spin mr-2"></i> Memuat grafik...</div>}
                 </div>
@@ -185,10 +153,9 @@
         function App() {
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
+            
             const [loans, setLoans] = useState([]);
             const [writeoffs, setWriteoffs] = useState([]);
-            
-            // STATE BARU: Untuk menyimpan raw data dan filter bulan
             const [rawReports, setRawReports] = useState([]);
             const [availablePeriods, setAvailablePeriods] = useState([]);
             const [selectedPeriod, setSelectedPeriod] = useState('ALL');
@@ -197,37 +164,37 @@
             const [activeTab, setActiveTab] = useState('analytics');
             const [loading, setLoading] = useState(true);
             const [isRefreshing, setIsRefreshing] = useState(false);
-            
             const [toast, setToast] = useState({ msg: null, type: 'info' });
             const toastTimerRef = useRef(null);
             
-            // Modals
             const [detailModal, setDetailModal] = useState({ open: false, member: null });
-            const [kunjunganModal, setKunjunganModal] = useState({ open: false, loan: null });
             const [pengajuanModal, setPengajuanModal] = useState({ open: false });
             const [riskModal, setRiskModal] = useState({ open: false, level: null });
             const [guideModal, setGuideModal] = useState(false);
+
+            const formatBulan = (val) => {
+                if (!val) return "-";
+                try {
+                    const date = new Date(val);
+                    if (!isNaN(date.getTime())) return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                    return val;
+                } catch(e) { return val; }
+            };
+            
+            const showToast = (msg, type = 'info') => { 
+                setToast({ msg, type }); 
+                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = setTimeout(() => setToast({ msg: null, type: 'info' }), 4000); 
+            };
 
             const exportToCSV = (data, filename) => {
                 if (data.length === 0) return;
                 const headers = ["NRP", "Nama", "Site", "Target Potongan", "Berhasil Debet", "Sisa Outstanding", "Tunggakan (Pending)", "DPD", "Keterangan"];
                 const csvRows = [headers.join(',')];
-                
                 data.forEach(row => {
-                    const values = [
-                        `"${row.nik || ''}"`,
-                        `"${row.nama || ''}"`,
-                        `"${row.site || ''}"`,
-                        row.targetPotongan || 0,
-                        row.berhasilDebet || 0,
-                        row.sisaOutstanding || 0,
-                        row.sisaPending || 0,
-                        row.dpd || 0,
-                        `"${row.latestReport?.keterangan || ''}"`
-                    ];
+                    const values = [ `"${row.nik || ''}"`, `"${row.nama || ''}"`, `"${row.site || ''}"`, row.targetPotongan || 0, row.berhasilDebet || 0, row.sisaOutstanding || 0, row.sisaPending || 0, row.dpd || 0, `"${row.latestReport?.keterangan || ''}"` ];
                     csvRows.push(values.join(','));
                 });
-                
                 const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -239,92 +206,48 @@
                 document.body.removeChild(a);
             };
 
-            // HELPER BARU: Mengubah format tanggal ISO menjadi format bulan yang rapi (Bulan Tahun)
-            const formatBulan = (val) => {
-                if (!val) return "-";
-                try {
-                    const date = new Date(val);
-                    if (!isNaN(date.getTime())) {
-                        return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-                    }
-                    return val;
-                } catch(e) { return val; }
-            };
-            
-            const showToast = (msg, type = 'info') => { 
-                setToast({ msg, type }); 
-                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-                toastTimerRef.current = setTimeout(() => setToast({ msg: null, type: 'info' }), 4000); 
-            };
-
             const fetchData = async () => {
                 setIsRefreshing(true);
                 try {
-                    // Fetch Laporan Data First (The source of truth)
                     const resL = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getLaporan&_t=${new Date().getTime()}`);
-                    if (!resL.ok) throw new Error(`Gagal menghubungi server Google. Status: ${resL.status}`);
+                    if (!resL.ok) throw new Error(`Status: ${resL.status}`);
                     const dL = await resL.json(); 
-                    
-                    // SAFETY CHECK
                     if (dL.status === 'error') throw new Error(dL.message);
                     
                     let currentReports = [];
-                    if (dL.data && Array.isArray(dL.data) && dL.data.length > 0) {
-                        currentReports = dL.data;
-                    }
-                    
-                    // Simpan raw data
+                    if (dL.data && Array.isArray(dL.data) && dL.data.length > 0) currentReports = dL.data;
                     setRawReports(currentReports);
                     
-                    // Ekstrak list periode unik untuk Dropdown UI
                     const periods = [...new Set(currentReports.map(r => r.periode).filter(Boolean))].sort().reverse();
                     setAvailablePeriods(periods);
                     
-                    // Fetch Writeoffs
                     const resW = await fetch(`${GOOGLE_SHEETS_API_URL}?action=getWriteoffs&_t=${new Date().getTime()}`);
                     if (resW.ok) {
                         const dW = await resW.json(); 
                         if (dW.data && Array.isArray(dW.data)) setWriteoffs(dW.data);
                     }
-                    
-                } catch (e) { 
-                    showToast(`Data Error: ${e.message}`, "error"); 
-                } finally { 
-                    setLoading(false); 
-                    setIsRefreshing(false); 
-                }
+                } catch (e) { showToast(`Data Error: ${e.message}`, "error"); 
+                } finally { setLoading(false); setIsRefreshing(false); }
             };
 
             const calculateRiskForPeriod = (reports, period) => {
                 const memberMap = new Map();
-                
                 reports.forEach(rep => {
                     const nrp = rep?.nrp;
                     if(!nrp) return; 
-
-                    // Abaikan data dari masa depan jika mensimulasikan bulan lampau
                     if (period !== 'ALL' && rep.periode > period) return;
 
                     if(!memberMap.has(nrp)) {
-                        memberMap.set(nrp, {
-                            id: rep.id || `temp-${Math.random()}`,
-                            nama: rep.nama || 'Tanpa Nama',
-                            nik: nrp,
-                            site: rep.site || '-',
-                            totalPinjamanAwal: 0,
-                            history: []
-                        });
+                        memberMap.set(nrp, { id: rep.id || `temp-${Math.random()}`, nama: rep.nama || 'Tanpa Nama', nik: nrp, site: rep.site || '-', totalPinjamanAwal: 0, history: [] });
                     }
                     const member = memberMap.get(nrp);
                     member.history.push(rep);
-                    
                     const repJumlah = Number(rep.jumlah) || 0;
                     if(repJumlah > member.totalPinjamanAwal) member.totalPinjamanAwal = repJumlah;
                 });
 
                 return Array.from(memberMap.values()).map(member => {
                     member.history.sort((a,b) => String(a.periode || '').localeCompare(String(b.periode || '')));
-                    
                     const latest = member.history[member.history.length - 1];
                     const previous = member.history.length > 1 ? member.history[member.history.length - 2] : null;
 
@@ -338,9 +261,7 @@
                         const dueDate = new Date(latest.tgl_jatuh_tempo);
                         const actDate = latest.tgl_bayar ? new Date(latest.tgl_bayar) : new Date(); 
                         const diffTime = actDate - dueDate;
-                        if(diffTime > 0) {
-                            dpd = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        }
+                        if(diffTime > 0) dpd = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                     }
 
                     const lateFreq = member.history.filter(h => {
@@ -351,81 +272,42 @@
                     }).length;
 
                     let warnings = [];
-                    if (previous) {
-                        const prevPending = Number(previous?.sisa_pending) || 0;
-                        if (prevPending === 0 && sisaPending > 0) warnings.push("Mundur Potongan (Gagal Baru)");
-                    }
+                    if (previous && (Number(previous?.sisa_pending) || 0) === 0 && sisaPending > 0) warnings.push("Mundur Potongan (Baru)");
                     if (member.totalPinjamanAwal > 0) {
                         const ratio = (sisaOutstanding / member.totalPinjamanAwal) * 100;
                         if (ratio > 80 && sisaOutstanding > 100000) warnings.push(`Debt Ratio Tinggi (${ratio.toFixed(0)}%)`);
                     }
-                    if(targetPotongan > 0 && berhasilDebet > 0 && berhasilDebet < targetPotongan && lateFreq > 1){
-                         warnings.push("Konsisten Bayar Parsial");
-                    }
+                    if(targetPotongan > 0 && berhasilDebet > 0 && berhasilDebet < targetPotongan && lateFreq > 1) warnings.push("Konsisten Bayar Parsial");
 
                     let riskLevel = RISK_LEVELS.GREEN;
                     const statusKet = (latest?.keterangan || '').toLowerCase();
                     
-                    if (dpd > 60 || statusKet.includes('gagal total') || lateFreq >= 4 || statusKet.includes('macet')) {
-                        riskLevel = RISK_LEVELS.CRITICAL;
-                    } else if (dpd > 30 || lateFreq >= 2 || sisaPending >= (targetPotongan * 2)) {
-                        riskLevel = RISK_LEVELS.RED;
-                    } else if (dpd > 0 || lateFreq === 1 || sisaPending > 0) {
-                        riskLevel = RISK_LEVELS.YELLOW;
-                    }
+                    if (dpd > 60 || statusKet.includes('gagal total') || lateFreq >= 4 || statusKet.includes('macet')) riskLevel = RISK_LEVELS.CRITICAL;
+                    else if (dpd > 30 || lateFreq >= 2 || sisaPending >= (targetPotongan * 2)) riskLevel = RISK_LEVELS.RED;
+                    else if (dpd > 0 || lateFreq === 1 || sisaPending > 0) riskLevel = RISK_LEVELS.YELLOW;
 
-                    return {
-                        ...member,
-                        latestReport: latest,
-                        sisaOutstanding,
-                        sisaPending,
-                        targetPotongan,
-                        berhasilDebet,
-                        dpd,
-                        lateFreq,
-                        warnings,
-                        riskLevel
-                    };
+                    return { ...member, latestReport: latest, sisaOutstanding, sisaPending, targetPotongan, berhasilDebet, dpd, lateFreq, warnings, riskLevel };
                 });
             };
 
-            // EFEK BARU: Terpicu secara instan saat raw data berubah atau user mengganti filter bulan
             useEffect(() => {
-                if (!rawReports || rawReports.length === 0) {
-                    setLoans([]);
-                    setRiskTrendData([]);
-                    return;
-                }
-
-                // Kalkulasi data tren historis (dari bulan terlama ke terbaru)
-                // Kita mengurutkan availablePeriods secara kronologis (ascending)
+                if (!rawReports || rawReports.length === 0) { setLoans([]); setRiskTrendData([]); return; }
                 const chronologicalPeriods = [...availablePeriods].sort();
                 const trendData = chronologicalPeriods.map(period => {
                     const members = calculateRiskForPeriod(rawReports, period);
-                    // Filter members yang memang laporannya ada di bulan tersebut
                     const activeMembers = members.filter(m => m.latestReport?.periode === period);
-                    
                     return {
-                        name: formatBulan(period),
-                        periodCode: period,
-                        Green: activeMembers.filter(m => m.riskLevel.id === 'GREEN').length,
-                        Yellow: activeMembers.filter(m => m.riskLevel.id === 'YELLOW').length,
-                        Red: activeMembers.filter(m => m.riskLevel.id === 'RED').length,
-                        Critical: activeMembers.filter(m => m.riskLevel.id === 'CRITICAL').length
+                        name: formatBulan(period), periodCode: period,
+                        Green: activeMembers.filter(m => m.riskLevel.id === 'GREEN').length, Yellow: activeMembers.filter(m => m.riskLevel.id === 'YELLOW').length,
+                        Red: activeMembers.filter(m => m.riskLevel.id === 'RED').length, Critical: activeMembers.filter(m => m.riskLevel.id === 'CRITICAL').length
                     };
                 });
                 setRiskTrendData(trendData);
 
-                // Kalkulasi anggota untuk tabel (periode aktif)
                 const processedMembers = calculateRiskForPeriod(rawReports, selectedPeriod);
-                
-                // FILTER PENAMPILAN: Hanya tampilkan anggota yang memang ada laporannya di bulan tersebut
                 let finalLoans = processedMembers;
-                if (selectedPeriod !== 'ALL') {
-                    finalLoans = processedMembers.filter(m => m.latestReport?.periode === selectedPeriod);
-                }
+                if (selectedPeriod !== 'ALL') finalLoans = processedMembers.filter(m => m.latestReport?.periode === selectedPeriod);
                 
-                // Set Loans (Pemantauan), sort by highest risk (Critical/Red first, then DPD)
                 setLoans(finalLoans.sort((a,b) => {
                     const score = (r) => r==='CRITICAL'?4:r==='RED'?3:r==='YELLOW'?2:1;
                     if(score(b.riskLevel.id) !== score(a.riskLevel.id)) return score(b.riskLevel.id) - score(a.riskLevel.id);
@@ -433,80 +315,43 @@
                 })); 
             }, [rawReports, selectedPeriod]);
 
-            // Efek untuk me-render Chart.js
             useEffect(() => {
-                if (riskTrendData.length > 0 && chartRef.current && window.Chart) {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-                    
+                if (riskTrendData.length > 0 && chartRef.current && window.Chart && activeTab === 'analytics') {
+                    if (chartInstance.current) chartInstance.current.destroy();
                     const ctx = chartRef.current.getContext('2d');
-                    
                     chartInstance.current = new window.Chart(ctx, {
                         type: 'line',
                         data: {
                             labels: riskTrendData.map(d => d.name),
                             datasets: [
-                                { label: 'Lancar', data: riskTrendData.map(d => d.Green), borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 4, borderWidth: 3 },
-                                { label: 'Warning', data: riskTrendData.map(d => d.Yellow), borderColor: '#fbbf24', backgroundColor: '#fbbf24', tension: 0.3, pointRadius: 4, borderWidth: 3 },
-                                { label: 'Bermasalah', data: riskTrendData.map(d => d.Red), borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, pointRadius: 4, borderWidth: 3 },
-                                { label: 'Macet / Kritis', data: riskTrendData.map(d => d.Critical), borderColor: '#ef4444', backgroundColor: '#ef4444', tension: 0.3, pointRadius: 4, borderWidth: 3, borderDash: [5, 5] },
+                                { label: 'Lancar', data: riskTrendData.map(d => d.Green), borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 3, borderWidth: 2 },
+                                { label: 'Warning', data: riskTrendData.map(d => d.Yellow), borderColor: '#fbbf24', backgroundColor: '#fbbf24', tension: 0.3, pointRadius: 3, borderWidth: 2 },
+                                { label: 'Masalah', data: riskTrendData.map(d => d.Red), borderColor: '#f43f5e', backgroundColor: '#f43f5e', tension: 0.3, pointRadius: 3, borderWidth: 2 },
+                                { label: 'Kritis', data: riskTrendData.map(d => d.Critical), borderColor: '#ef4444', backgroundColor: '#ef4444', tension: 0.3, pointRadius: 3, borderWidth: 2, borderDash: [5, 5] },
                             ]
                         },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
+                            responsive: true, maintainAspectRatio: false,
                             plugins: {
-                                legend: { labels: { color: 'rgba(255, 255, 255, 0.7)', font: { family: 'DM Sans', size: 12 } }, position: 'bottom' },
-                                tooltip: { backgroundColor: 'rgba(15, 12, 41, 0.9)', titleColor: '#fff', bodyColor: '#fff', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, padding: 10, cornerRadius: 8 }
+                                legend: { labels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 10 } }, position: 'bottom' },
+                                tooltip: { backgroundColor: 'rgba(15, 12, 41, 0.9)', titleColor: '#fff', bodyColor: '#fff', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, padding: 10 }
                             },
                             scales: {
-                                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)' } },
-                                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 1 } }
+                                x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)', font:{size:9} } },
+                                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'rgba(255, 255, 255, 0.5)', stepSize: 1, font:{size:9} } }
                             }
                         }
                     });
                 }
-                
-                return () => {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                        chartInstance.current = null;
-                    }
-                };
-            }, [riskTrendData]);
+                return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
+            }, [riskTrendData, activeTab]);
 
             useEffect(() => { fetchData(); }, []);
-
-            const handleSimpanLaporan = async (e) => {
-                e.preventDefault(); 
-                const fd = new FormData(e.target); 
-                const p = new URLSearchParams(); 
-                p.append('action','addLaporan');
-                for(let[k,v] of fd.entries()) p.append(k,v);
-                
-                setIsRefreshing(true);
-                try { 
-                    const r = await fetch(GOOGLE_SHEETS_API_URL,{method:'POST',body:p}); 
-                    if (!r.ok) throw new Error("Gagal terhubung ke Google Script");
-                    const res = await r.json(); 
-                    if(res.status === 'success') {
-                        e.target.reset();
-                        showToast("Data berhasil direkam. Algoritma sedang dikalkulasi...", "success");
-                        setActiveTab('analytics'); // Pindah ke dashboard agar user lihat hasilnya
-                        fetchData(); // Muat ulang re-kalkulasi scoring
-                    } else {
-                        showToast(`Server: ${res.message}`, "error");
-                    }
-                } catch(e) { showToast(`Gagal menyimpan data: ${e.message}`, "error"); } 
-                finally { setIsRefreshing(false); }
-            };
 
             const handleAjukanKasus = async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target); 
                 const loanId = fd.get('loanId');
-                
                 const sel = loans.find(l => String(l.id) === String(loanId));
                 if (!sel) return showToast("Pilih anggota yang valid", "warning");
                 
@@ -520,28 +365,16 @@
                     const res = await r.json(); 
                     if (res.status === 'success') {
                         setPengajuanModal({open:false});
-                        showToast("Kasus berhasil diekskalasi ke Penyelesaian", "success");
+                        showToast("Kasus berhasil diekskalasi", "success");
                         fetchData();
                     }
                 } catch(e) { showToast("Error jaringan", "error"); } 
                 finally { setIsRefreshing(false); }
             };
 
-            // Menghitung Analytics Summary secara aman
             const totalTargetPotongan = loans.reduce((s, l) => s + (l.targetPotongan || 0), 0);
             const totalBerhasilDebet = loans.reduce((s, l) => s + (l.berhasilDebet || 0), 0);
-            const collectionRate = totalTargetPotongan > 0 ? (totalBerhasilDebet / totalTargetPotongan) * 100 : 0;
-
-            const aging = {
-                current: loans.filter(l => l.dpd === 0 && l.sisaPending > 0).reduce((s, l) => s + (l.sisaPending || 0), 0),
-                days30: loans.filter(l => l.dpd > 0 && l.dpd <= 30).reduce((s, l) => s + (l.sisaPending || 0), 0),
-                days60: loans.filter(l => l.dpd > 30 && l.dpd <= 60).reduce((s, l) => s + (l.sisaPending || 0), 0),
-                days90Plus: loans.filter(l => l.dpd > 60).reduce((s, l) => s + (l.sisaPending || 0), 0),
-            };
-
-            const par30 = loans.filter(l => l.dpd > 30).reduce((s, l) => s + (l.sisaOutstanding || 0), 0);
-
-            // Group by Site
+            
             const siteRisk = {};
             loans.forEach(l => {
                 const siteName = l.site || 'Unknown';
@@ -560,77 +393,67 @@
                 totalPending: loans.reduce((s, l) => s + (l.sisaPending || 0), 0),
                 totalOutstanding: loans.reduce((s, l) => s + (l.sisaOutstanding || 0), 0),
                 warningCount: loans.filter(l => l.warnings.length > 0).length,
-                collectionRate,
-                aging,
-                par30,
                 topRiskSites
             };
 
             if (loading) {
                 return (
-                    <div className="min-h-screen p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+                    <div className="min-h-screen p-4 md:p-8 w-full max-w-7xl mx-auto space-y-6">
                         <div className="w-48 md:w-64 h-10 skeleton mb-8"></div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4"><div className="h-28 md:h-32 skeleton"></div><div className="h-28 md:h-32 skeleton"></div><div className="h-28 md:h-32 skeleton"></div><div className="h-28 md:h-32 skeleton"></div></div>
-                        <div className="w-full h-64 md:h-96 skeleton"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4"><div className="h-28 skeleton"></div><div className="h-28 skeleton"></div></div>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen relative pb-12">
-                    {/* Floating Toast Notification */}
+                <div className="min-h-screen relative pb-12 w-full overflow-x-hidden">
+                    {/* Toast */}
                     {toast.msg && (
-                        <div className="fixed top-6 right-6 z-[100] fade-in">
-                            <div className={`glass-light px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border-l-4 ${
-                                toast.type === 'error' ? 'border-l-rose-500 text-rose-700' : 
-                                toast.type === 'success' ? 'border-l-emerald-500 text-emerald-700' : 
-                                'border-l-amber-500 text-amber-700'
-                            }`}>
-                                <i className={`fa-solid ${toast.type==='error'?'fa-triangle-exclamation':toast.type==='success'?'fa-check-circle':'fa-circle-info'}`}></i>
-                                <span className="text-sm font-bold">{toast.msg}</span>
+                        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 md:top-6 md:right-6 md:left-auto md:transform-none z-[100] fade-in w-[90%] md:w-auto max-w-sm">
+                            <div className={`glass-light px-4 md:px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border-l-4 ${toast.type === 'error' ? 'border-l-rose-500 text-rose-700' : toast.type === 'success' ? 'border-l-emerald-500 text-emerald-700' : 'border-l-amber-500 text-amber-700'}`}>
+                                <i className={`fa-solid shrink-0 ${toast.type==='error'?'fa-triangle-exclamation':toast.type==='success'?'fa-check-circle':'fa-circle-info'}`}></i>
+                                <span className="text-xs md:text-sm font-bold text-break-mobile">{toast.msg}</span>
                             </div>
                         </div>
                     )}
 
                     {/* Navbar */}
-                    <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 md:px-6 py-3 md:py-4 shadow-lg shadow-black/20">
+                    <header className="sticky top-0 z-40 glass border-b border-white/10 px-4 md:px-6 py-3 md:py-4 shadow-lg shadow-black/20 w-full">
                         <div className="max-w-7xl mx-auto flex flex-col gap-3">
-                            <div className="flex justify-between items-center">
-                                <h1 className="flex items-center gap-2 md:gap-3">
-                                    <div className="gradient-accent w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30 shrink-0">
-                                        <i className="fa-solid fa-radar text-white text-lg md:text-xl"></i>
+                            <div className="flex justify-between items-center w-full">
+                                <h1 className="flex items-center gap-2 md:gap-3 shrink-0">
+                                    <div className="gradient-accent w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                        <i className="fa-solid fa-radar text-white text-sm md:text-xl"></i>
                                     </div>
                                     <div className="flex flex-col justify-center">
-                                        <div className="flex items-center gap-2 md:gap-3">
-                                            <span className="text-xl md:text-2xl font-black tracking-tight bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">SIPEKAT</span>
-                                            <span className="text-[8px] md:text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 md:py-1 rounded-full border border-emerald-500/30 uppercase font-bold tracking-widest"><i className="fa-solid fa-signal mr-1 animate-pulse"></i>Live</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg md:text-2xl font-black tracking-tight bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">SIPEKAT</span>
+                                            <span className="text-[8px] md:text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 md:px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase font-bold tracking-widest"><i className="fa-solid fa-signal mr-1 animate-pulse"></i>Live</span>
                                         </div>
-                                        <span className="text-[9px] md:text-[11px] text-white/50 font-medium tracking-wide uppercase mt-0.5 hidden md:block">Sistem Pengawasan Kredit Anggota Terpadu</span>
                                     </div>
                                 </h1>
-                                <div className="flex items-center gap-2">
-                                    <div className="glass px-2.5 md:px-3 py-1.5 rounded-xl flex items-center gap-1.5 md:gap-2 border-white/20 shadow-inner">
-                                        <i className="fa-regular fa-calendar-days text-purple-400/80 text-xs md:text-sm"></i>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="glass px-2 md:px-3 py-1.5 rounded-xl flex items-center gap-1.5 border-white/20 shadow-inner">
+                                        <i className="fa-regular fa-calendar-days text-purple-400/80 text-xs hidden sm:block"></i>
                                         <select 
                                             value={selectedPeriod} 
                                             onChange={e => setSelectedPeriod(e.target.value)}
-                                            className="bg-transparent text-white/90 text-xs md:text-sm font-bold outline-none cursor-pointer border-none appearance-none pr-1 md:pr-2 focus:ring-0 max-w-[120px] md:max-w-none"
+                                            className="bg-transparent text-white/90 text-[10px] md:text-sm font-bold outline-none cursor-pointer border-none appearance-none pr-1 focus:ring-0 max-w-[80px] sm:max-w-none"
                                         >
-                                            <option value="ALL" className="bg-slate-900 text-white">Semua Bulan</option>
+                                            <option value="ALL" className="bg-slate-900">Semua Waktu</option>
                                             {availablePeriods.map(p => (
-                                                <option key={p} value={p} className="bg-slate-900 text-white">{formatBulan(p)}</option>
+                                                <option key={p} value={p} className="bg-slate-900">{formatBulan(p)}</option>
                                             ))}
                                         </select>
-                                        <i className="fa-solid fa-chevron-down text-[8px] md:text-[10px] text-white/40 pointer-events-none"></i>
                                     </div>
-                                    <button onClick={fetchData} disabled={isRefreshing} className="p-2.5 md:p-3 rounded-xl glass hover:bg-white/10 transition-all text-white/70 hover:text-white shrink-0">
-                                        <i className={`fa-solid fa-arrows-rotate text-sm ${isRefreshing?'animate-spin text-purple-400':''}`}></i>
+                                    <button onClick={fetchData} disabled={isRefreshing} className="p-2 md:p-3 rounded-xl glass hover:bg-white/10 transition-all text-white/70 hover:text-white shrink-0">
+                                        <i className={`fa-solid fa-arrows-rotate text-xs md:text-sm ${isRefreshing?'animate-spin text-purple-400':''}`}></i>
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex gap-1 p-1 md:p-1.5 rounded-xl glass overflow-x-auto hide-scrollbar">
+                            <div className="flex gap-1 p-1 md:p-1.5 rounded-xl glass overflow-x-auto hide-scrollbar w-full">
                                 {[['analytics','fa-chart-pie','Dashboard'], ['pemantauan','fa-users-viewfinder','Pemantauan'], ['penghapusan','fa-gavel','Penyelesaian']].map(([id,icon,label])=>(
-                                    <button key={id} onClick={()=>setActiveTab(id)} className={`flex-1 md:flex-none px-3 md:px-4 py-2 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap ${activeTab===id?'tab-active':'text-white/60 hover:text-white/90 hover:bg-white/5'}`}>
+                                    <button key={id} onClick={()=>setActiveTab(id)} className={`flex-1 min-w-[100px] px-2 py-1.5 md:py-2 rounded-lg text-[11px] md:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab===id?'tab-active':'text-white/60 hover:text-white/90 hover:bg-white/5'}`}>
                                         <i className={`fa-solid ${icon}`}></i> {label}
                                     </button>
                                 ))}
@@ -638,97 +461,85 @@
                         </div>
                     </header>
 
-                    <main className="p-4 md:p-6 max-w-7xl mx-auto mt-2 md:mt-4">
+                    <main className="p-3 md:p-6 max-w-7xl mx-auto mt-2 w-full">
                         
-                        {}
-                        {/* TAB: DASHBOARD ANALYTICS */}
                         {activeTab==='analytics' && (
-                            <div className="fade-in space-y-5 md:space-y-6">
-                                <div className="flex flex-col md:flex-row md:items-end justify-between mb-2 md:mb-4 gap-3 md:gap-4">
+                            <div className="fade-in space-y-4 md:space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-2 md:mb-4 gap-2 md:gap-4">
                                     <div>
                                         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                                             <h2 className="text-xl md:text-2xl font-bold text-white">Risk Analytics</h2>
-                                            <button onClick={() => setGuideModal(true)} className="px-2.5 md:px-3 py-1 bg-purple-500/20 text-purple-300 text-[10px] md:text-xs font-bold rounded-lg hover:bg-purple-500/40 transition-colors border border-purple-500/30 flex items-center gap-1.5"><i className="fa-solid fa-circle-question"></i> Panduan</button>
+                                            <button onClick={() => setGuideModal(true)} className="px-2 py-1 bg-purple-500/20 text-purple-300 text-[10px] md:text-xs font-bold rounded-lg hover:bg-purple-500/40 border border-purple-500/30 flex items-center gap-1.5"><i className="fa-solid fa-circle-question"></i> Panduan</button>
                                         </div>
-                                        <p className="text-white/50 text-xs md:text-sm mt-1">Matriks pemetaan risiko debitur secara real-time.</p>
                                     </div>
                                 </div>
 
-                                {/* Risk Bucket Metrics */}
-                                <div className="grid grid-cols-3 gap-3 md:gap-4">
+                                {/* Risk Bucket Metrics - Diubah menjadi grid 1 kolom di HP agar menumpuk vertikal */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                                     {Object.values(RISK_LEVELS).filter(l => l.id !== 'GREEN').map((level) => {
-                                        let count = level.id === 'GREEN' ? analytics.green : level.id === 'YELLOW' ? analytics.yellow : level.id === 'RED' ? analytics.red : analytics.critical;
-                                        let grad = level.id === 'GREEN' ? 'gradient-risk-green' : level.id === 'YELLOW' ? 'gradient-risk-yellow' : level.id === 'RED' ? 'gradient-risk-red' : 'gradient-risk-critical';
+                                        let count = level.id === 'YELLOW' ? analytics.yellow : level.id === 'RED' ? analytics.red : analytics.critical;
+                                        let grad = level.id === 'YELLOW' ? 'gradient-risk-yellow' : level.id === 'RED' ? 'gradient-risk-red' : 'gradient-risk-critical';
                                         return (
-                                            <div key={level.id} onClick={() => setRiskModal({open: true, level: level.id})} className="glass-panel rounded-xl md:rounded-2xl p-3 md:p-5 card-hover relative overflow-hidden group cursor-pointer transition-transform hover:scale-105 active:scale-95">
-                                                <div className={`absolute top-0 right-0 w-20 md:w-32 h-20 md:h-32 opacity-10 rounded-full blur-2xl transform translate-x-6 md:translate-x-10 -translate-y-6 md:-translate-y-10 ${grad}`}></div>
+                                            <div key={level.id} onClick={() => setRiskModal({open: true, level: level.id})} className="glass-panel rounded-xl md:rounded-2xl p-4 card-hover relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.02] active:scale-95">
+                                                <div className={`absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full blur-2xl transform translate-x-10 -translate-y-10 ${grad}`}></div>
                                                 <div className="flex justify-between items-start mb-2 md:mb-4">
-                                                    <span className={`px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[10px] font-bold uppercase rounded-md md:rounded-lg border ${level.color}`}>{level.id}</span>
-                                                    <i className={`fa-solid ${level.icon} text-lg md:text-2xl opacity-40 group-hover:scale-110 transition-transform ${level.id==='RED'?'text-rose-500':''}`}></i>
+                                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md border ${level.color}`}>{level.id}</span>
+                                                    <i className={`fa-solid ${level.icon} text-xl md:text-2xl opacity-40 group-hover:scale-110 transition-transform ${level.id==='RED'?'text-rose-500':''}`}></i>
                                                 </div>
                                                 <div>
-                                                    <div className="text-2xl md:text-4xl font-black text-white tracking-tight">{count} <span className="text-[9px] md:text-sm font-normal text-white/40 hidden md:inline">Debitur</span></div>
-                                                    <div className="text-[10px] md:text-sm text-white/50 mt-0.5 md:mt-1">{level.label}</div>
+                                                    <div className="text-3xl md:text-4xl font-black text-white tracking-tight">{count} <span className="text-xs font-normal text-white/40">Orang</span></div>
+                                                    <div className="text-xs md:text-sm text-white/50 mt-1">{level.label}</div>
                                                 </div>
                                             </div>
                                         )
                                     })}
                                 </div>
 
-                                {/* Financial Highlights */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                                    <div className="glass-panel rounded-xl md:rounded-2xl p-4 md:p-6 flex items-center gap-3 md:gap-4">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-base md:text-lg border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.2)]"><i className="fa-solid fa-chart-line"></i></div>
-                                        <div className="min-w-0"><div className="text-white/50 text-[9px] md:text-[10px] font-bold uppercase tracking-wider mb-0.5 md:mb-1">Total Tunggakan</div><div className="text-base md:text-xl font-bold text-rose-300 truncate">Rp {analytics.totalPending.toLocaleString('id-ID')}</div></div>
+                                {/* Financial Highlights - Juga ditumpuk di HP */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-3">
+                                        <div className="w-10 h-10 shrink-0 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.2)]"><i className="fa-solid fa-chart-line"></i></div>
+                                        <div className="min-w-0"><div className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Tunggakan</div><div className="text-base font-bold text-rose-300 truncate">Rp {(analytics.totalPending/1000000).toFixed(1)} Jt</div></div>
                                     </div>
-                                    <div className="glass-panel rounded-xl md:rounded-2xl p-4 md:p-6 flex items-center gap-3 md:gap-4">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-base md:text-lg border border-blue-500/30"><i className="fa-solid fa-vault"></i></div>
-                                        <div className="min-w-0"><div className="text-white/50 text-[9px] md:text-[10px] font-bold uppercase tracking-wider mb-0.5 md:mb-1">Exposure Outstanding</div><div className="text-base md:text-xl font-bold text-white truncate">Rp {analytics.totalOutstanding.toLocaleString('id-ID')}</div></div>
+                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-3">
+                                        <div className="w-10 h-10 shrink-0 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30"><i className="fa-solid fa-vault"></i></div>
+                                        <div className="min-w-0"><div className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-0.5">Total Exposure</div><div className="text-base font-bold text-white truncate">Rp {(analytics.totalOutstanding/1000000).toFixed(1)} Jt</div></div>
                                     </div>
-                                    <div className="glass-panel rounded-xl md:rounded-2xl p-4 md:p-6 flex items-center gap-3 md:gap-4 border border-amber-500/30 relative overflow-hidden">
+                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-3 border border-amber-500/30 relative overflow-hidden">
                                         <div className="absolute inset-0 bg-amber-500/5 animate-pulse"></div>
-                                        <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-base md:text-lg z-10"><i className="fa-solid fa-bell"></i></div>
-                                        <div className="z-10 min-w-0"><div className="text-amber-200/70 text-[9px] md:text-[10px] font-bold uppercase tracking-wider mb-0.5 md:mb-1">Early Warning</div><div className="text-base md:text-xl font-bold text-amber-300">{analytics.warningCount} Kasus</div></div>
+                                        <div className="w-10 h-10 shrink-0 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center z-10"><i className="fa-solid fa-bell"></i></div>
+                                        <div className="z-10 min-w-0"><div className="text-amber-200/70 text-[10px] font-bold uppercase tracking-wider mb-0.5">Peringatan Awal</div><div className="text-base font-bold text-amber-300">{analytics.warningCount} Kasus</div></div>
                                     </div>
                                 </div>
 
-                                {/* Deep Insights: Top Risk Sites & Tren Risiko */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                                    {/* Top Risk Sites */}
-                                    <div className="glass-panel rounded-2xl p-6">
-                                        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1"><i className="fa-solid fa-map-location-dot text-blue-400"></i> Titik Risiko (Site)</h3>
-                                        <p className="text-xs text-white/50 mb-5">Lokasi dengan penyumbang NPL tertinggi</p>
-                                        
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-2">
+                                    <div className="glass-panel rounded-2xl p-4 md:p-6">
+                                        <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2 mb-4"><i className="fa-solid fa-map-location-dot text-blue-400"></i> Titik Risiko (Site)</h3>
                                         <div className="space-y-3">
                                             {analytics.topRiskSites.length > 0 ? analytics.topRiskSites.map(([site, data], idx) => (
                                                 <div key={site} className="bg-white/5 border border-white/10 rounded-xl p-3 flex justify-between items-center">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${idx===0 ? 'bg-rose-500/20 text-rose-400' : 'bg-white/10 text-white/50'}`}>{idx+1}</div>
-                                                        <div>
-                                                            <div className="text-sm font-bold text-white/90">{site}</div>
+                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${idx===0 ? 'bg-rose-500/20 text-rose-400' : 'bg-white/10 text-white/50'}`}>{idx+1}</div>
+                                                        <div className="min-w-0">
+                                                            <div className="text-sm font-bold text-white/90 truncate">{site}</div>
                                                             <div className="text-[10px] text-white/40">{data.criticalRed} Kasus Berat</div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
+                                                    <div className="text-right shrink-0 pl-2">
                                                         <div className="text-sm font-bold text-rose-300">Rp {(data.pending/1000000).toFixed(1)}Jt</div>
                                                     </div>
                                                 </div>
-                                            )) : (
-                                                <div className="text-center text-white/30 text-sm py-4">Belum ada data tunggakan.</div>
-                                            )}
+                                            )) : <div className="text-center text-white/30 text-sm py-4">Belum ada data.</div>}
                                         </div>
                                     </div>
-
-                                    {/* Trend Analitik Risiko Bulanan */}
-                                    {riskTrendData && riskTrendData.length > 0 && (
-                                        <div className="md:col-span-2 glass-panel rounded-2xl p-6">
-                                            <div className="mb-6">
-                                                <h3 className="text-lg font-bold text-white flex items-center gap-2"><i className="fa-solid fa-chart-line text-emerald-400"></i> Tren Risiko Bulanan</h3>
-                                                <p className="text-xs text-white/50 mt-1">Pergerakan jumlah debitur bermasalah berdasarkan kategori risiko dari bulan ke bulan.</p>
+                                    
+                                    {riskTrendData.length > 0 && (
+                                        <div className="lg:col-span-2 glass-panel rounded-2xl p-4 md:p-6">
+                                            <div className="mb-4">
+                                                <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-2"><i className="fa-solid fa-chart-line text-emerald-400"></i> Tren Risiko</h3>
                                             </div>
-                                            <div className="h-[250px] w-full relative">
+                                            <div className="h-[200px] md:h-[250px] w-full relative">
                                                 <canvas ref={chartRef}></canvas>
-                                                {!window.Chart && <div className="absolute inset-0 flex items-center justify-center text-white/30 text-sm"><i className="fa-solid fa-spinner animate-spin mr-2"></i> Memuat pustaka grafik...</div>}
                                             </div>
                                         </div>
                                     )}
@@ -738,48 +549,46 @@
 
                         {activeTab==='pemantauan' && (
                             <div className="fade-in">
-                                <div className="mb-4 md:mb-6"><h2 className="text-xl md:text-2xl font-bold text-white">Radar Pemantauan Debitur</h2><p className="text-white/50 text-xs md:text-sm mt-1">Daftar anggota yang dikalkulasi secara prediktif. Diurutkan dari risiko tertinggi.</p></div>
+                                <div className="mb-4"><h2 className="text-xl md:text-2xl font-bold text-white">Radar Pemantauan</h2></div>
                                 
-                                {/* Mobile Card View */}
-                                <div className="mobile-card-row">
-                                    {loans.length === 0 && <div className="py-16 text-center text-white/30 glass-panel rounded-2xl"><i className="fa-solid fa-box-open text-3xl mb-3 block"></i>Belum ada data.</div>}
+                                {/* Tampilan Mobile: KARTU (Tumpuk ke bawah) */}
+                                <div className="md:hidden flex flex-col gap-3">
+                                    {loans.length === 0 && <div className="py-10 text-center text-white/30 glass-panel rounded-xl">Belum ada data.</div>}
                                     {loans.map(loan => (
-                                        <div key={loan.id} className="mobile-card-item">
-                                            <div className="flex justify-between items-start mb-3">
+                                        <div key={loan.id} className="glass-panel rounded-xl p-4 flex flex-col">
+                                            <div className="flex justify-between items-start mb-3 gap-2">
+                                                <div className="min-w-0">
+                                                    <div className="font-bold text-white/90 text-sm truncate">{loan.nama}</div>
+                                                    <div className="text-[10px] text-white/40 mt-0.5 truncate">{loan.nik} &bull; {loan.site}</div>
+                                                </div>
+                                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase shrink-0 ${loan.riskLevel.color}`}>{loan.riskLevel.id}</span>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-2 mb-3 bg-white/5 rounded-lg p-2">
                                                 <div>
-                                                    <div className="font-bold text-white/90 text-sm">{loan.nama}</div>
-                                                    <div className="text-[10px] text-white/40 mt-0.5 flex items-center gap-1.5">
-                                                        <span className="bg-white/10 px-1.5 py-0.5 rounded">{loan.nik}</span>
-                                                        <span>{loan.site}</span>
-                                                    </div>
-                                                </div>
-                                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase ${loan.riskLevel.color}`}>{loan.riskLevel.id}</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-                                                <div className="bg-white/5 rounded-lg p-2">
                                                     <div className="text-white/40 text-[9px] uppercase mb-0.5">Tunggakan</div>
-                                                    <div className={`font-bold ${loan.sisaPending > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Rp {loan.sisaPending.toLocaleString('id-ID')}</div>
+                                                    <div className={`font-bold text-xs ${loan.sisaPending > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Rp {(loan.sisaPending/1000).toLocaleString('id-ID')}rb</div>
                                                 </div>
-                                                <div className="bg-white/5 rounded-lg p-2">
-                                                    <div className="text-white/40 text-[9px] uppercase mb-0.5">DPD</div>
-                                                    <div className="font-bold text-white">{loan.dpd > 0 ? `${loan.dpd} Hari` : '-'}</div>
+                                                <div>
+                                                    <div className="text-white/40 text-[9px] uppercase mb-0.5">DPD / Telat</div>
+                                                    <div className="font-bold text-white text-xs">{loan.dpd > 0 ? `${loan.dpd} Hari` : '-'} {loan.lateFreq>0 ? `(${loan.lateFreq}x)` : ''}</div>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {loan.warnings.length > 0 && loan.warnings.slice(0,2).map((w,i) => (
-                                                        <span key={i} className="text-[8px] font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded"><i className="fa-solid fa-triangle-exclamation mr-1"></i>{w.length > 20 ? w.substring(0,20)+'...' : w}</span>
-                                                    ))}
-                                                    {loan.lateFreq > 0 && <span className="text-[8px] text-white/40">Telat: {loan.lateFreq}x</span>}
+                                            
+                                            <div className="flex justify-between items-center mt-auto pt-2 border-t border-white/10">
+                                                <div className="flex flex-col gap-1 w-full mr-2 min-w-0">
+                                                     {loan.warnings.length > 0 ? loan.warnings.slice(0,1).map((w,i) => (
+                                                        <span key={i} className="text-[9px] font-medium text-amber-300 truncate"><i className="fa-solid fa-triangle-exclamation mr-1"></i>{w}</span>
+                                                    )) : <span className="text-[9px] text-white/20 italic">Tidak ada peringatan</span>}
                                                 </div>
-                                                <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-purple-500/20 text-purple-300 hover:bg-purple-500/40 border border-purple-500/30 transition-colors shrink-0 ml-2"><i className="fa-solid fa-chart-gantt mr-1"></i>Detail</button>
+                                                <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0">Detail</button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* Desktop Table View */}
-                                <div className="desktop-table glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                                {/* Tampilan Desktop: TABEL */}
+                                <div className="hidden md:block glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
                                             <thead className="bg-white/5 border-b border-white/10 text-white/60">
@@ -793,54 +602,37 @@
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
                                                 {loans.map(loan => (
-                                                    <tr key={loan.id} className="hover:bg-white/[0.04] transition-colors group">
+                                                    <tr key={loan.id} className="hover:bg-white/[0.04]">
                                                         <td className="px-5 py-4">
-                                                            <div className="font-bold text-white/90 text-base">{loan.nama}</div>
-                                                            <div className="text-xs text-white/40 mt-1 flex items-center gap-2">
-                                                                <span className="bg-white/10 px-2 py-0.5 rounded text-[10px]">{loan.nik}</span>
-                                                                <span>{loan.site}</span>
-                                                            </div>
+                                                            <div className="font-bold text-white/90">{loan.nama}</div>
+                                                            <div className="text-xs text-white/40 mt-1">{loan.nik} &bull; {loan.site}</div>
                                                         </td>
                                                         <td className="px-5 py-4">
                                                             <div className={`font-bold ${loan.sisaPending > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                                                                 {loan.sisaPending > 0 ? `Pending: Rp ${loan.sisaPending.toLocaleString('id-ID')}` : 'Clear / Lancar'}
                                                             </div>
-                                                            <div className="text-xs text-white/40 mt-1 flex flex-col gap-1">
-                                                                <div className="flex justify-between items-center w-full">
-                                                                    <span title="Target Potongan">Tgt: {loan.targetPotongan.toLocaleString('id-ID')}</span>
-                                                                    <span title="Berhasil Debet" className="text-emerald-300 ml-2">Debet: {loan.berhasilDebet.toLocaleString('id-ID')}</span>
-                                                                </div>
-                                                                {loan.targetPotongan > 0 && (
-                                                                    <div className="w-full bg-white/10 rounded-full h-1 mt-0.5 max-w-[150px]">
-                                                                        <div className={`h-1 rounded-full ${loan.berhasilDebet >= loan.targetPotongan ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{width: `${Math.min((loan.berhasilDebet / loan.targetPotongan) * 100, 100)}%`}}></div>
-                                                                    </div>
-                                                                )}
+                                                            <div className="text-xs text-white/40 mt-1">
+                                                                Tgt: {loan.targetPotongan.toLocaleString('id-ID')} | Debet: {loan.berhasilDebet.toLocaleString('id-ID')}
                                                             </div>
                                                         </td>
                                                         <td className="px-5 py-4">
-                                                            <div className="flex flex-col gap-1.5 items-start">
-                                                                <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${loan.riskLevel.color}`}>
-                                                                    {loan.riskLevel.id}
-                                                                </span>
-                                                                {loan.dpd > 0 && <span className="text-xs font-semibold text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded"><i className="fa-regular fa-clock mr-1"></i>DPD: {loan.dpd} Hari</span>}
-                                                                {loan.lateFreq > 0 && <span className="text-[10px] text-white/40">Riwayat Telat: {loan.lateFreq}x</span>}
+                                                            <div className="flex flex-col gap-1 items-start">
+                                                                <span className={`px-2 py-1 rounded text-[10px] font-bold border uppercase ${loan.riskLevel.color}`}>{loan.riskLevel.id}</span>
+                                                                {loan.dpd > 0 && <span className="text-xs font-semibold text-rose-300">DPD: {loan.dpd} Hr</span>}
                                                             </div>
                                                         </td>
                                                         <td className="px-5 py-4">
                                                             <div className="flex flex-col gap-1 whitespace-normal max-w-[200px]">
                                                                 {loan.warnings.length === 0 ? <span className="text-white/20 text-xs italic">-</span> : 
-                                                                    loan.warnings.map((w,i)=><span key={i} className="text-[10px] leading-tight font-medium text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md"><i className="fa-solid fa-triangle-exclamation mr-1.5"></i>{w}</span>)
+                                                                    loan.warnings.map((w,i)=><span key={i} className="text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md">{w}</span>)
                                                                 }
                                                             </div>
                                                         </td>
                                                         <td className="px-5 py-4 text-right">
-                                                            <div className="flex justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 hover:bg-purple-500/40 border border-purple-500/30 transition-colors"><i className="fa-solid fa-chart-gantt mr-1.5"></i>Detail</button>
-                                                            </div>
+                                                            <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Detail</button>
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {loans.length===0 && <tr><td colSpan="5" className="text-center py-16 text-white/30"><i className="fa-solid fa-box-open text-3xl mb-3 block"></i>Belum ada data history untuk dianalisis. Silakan Input Laporan.</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -848,25 +640,25 @@
                             </div>
                         )}
 
-
-
                         {activeTab==='penghapusan' && (
                             <div className="fade-in">
-                                <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                    <div><h2 className="text-2xl font-bold text-white">Eskalasi Penyelesaian Kasus</h2><p className="text-white/50 text-sm mt-1">Daftar kasus berat (Risk RED/CRITICAL) yang ditarik untuk ditindaklanjuti.</p></div>
-                                    <button onClick={()=>setPengajuanModal({open:true})} className="bg-rose-600 hover:bg-rose-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 transition-colors"><i className="fa-solid fa-fire"></i> Ekskalasi Kasus Baru</button>
+                                <div className="mb-4 flex justify-between items-center">
+                                    <h2 className="text-xl md:text-2xl font-bold text-white">Penyelesaian</h2>
+                                    <button onClick={()=>setPengajuanModal({open:true})} className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg shrink-0"><i className="fa-solid fa-fire mr-1"></i> Eskalasi</button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                    {writeoffs.length===0 ? <div className="col-span-full py-20 text-center glass-panel rounded-2xl border-dashed"><i className="fa-solid fa-folder-open text-4xl text-white/20 mb-3 block"></i><span className="text-white/40">Belum ada kasus yang diekskalasi.</span></div> :
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {writeoffs.length===0 ? <div className="col-span-full py-10 text-center glass-panel rounded-2xl"><span className="text-white/40">Belum ada kasus.</span></div> :
                                     writeoffs.map(c=>(
-                                        <div key={c.id} className="glass-panel rounded-2xl p-6 flex flex-col card-hover border-t-4 border-t-rose-500">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div><h3 className="font-bold text-white text-lg">{c.nama}</h3><p className="text-sm text-white/40 mt-0.5">Sisa Hutang: <span className="text-rose-400 font-bold">Rp {Number(c.sisaHutang||0).toLocaleString('id-ID')}</span></p></div>
+                                        <div key={c.id} className="glass-panel rounded-2xl p-4 md:p-6 flex flex-col border-t-4 border-t-rose-500">
+                                            <div className="mb-4">
+                                                <h3 className="font-bold text-white text-base md:text-lg">{c.nama}</h3>
+                                                <p className="text-xs md:text-sm text-white/40 mt-0.5">Sisa Hutang: <span className="text-rose-400 font-bold">Rp {Number(c.sisaHutang||0).toLocaleString('id-ID')}</span></p>
                                             </div>
-                                            <div className="bg-black/20 rounded-xl p-4 text-sm mb-5 border border-white/5">
-                                                <div className="font-bold text-white/40 text-[10px] uppercase mb-1">Alasan</div><div className="text-white/80 mb-3 font-medium">{c.alasan}</div>
+                                            <div className="bg-black/20 rounded-xl p-3 text-xs md:text-sm border border-white/5">
+                                                <div className="font-bold text-white/40 text-[10px] uppercase mb-1">Alasan</div>
+                                                <div className="text-white/80 mb-3 font-medium text-break-mobile">{c.alasan}</div>
                                                 <div className="font-bold text-white/40 text-[10px] uppercase mb-1">Status</div>
-                                                <div className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${c.status==='Disetujui'?'bg-emerald-500/20 text-emerald-400 border-emerald-500/30':'bg-amber-500/20 text-amber-400 border-amber-500/30'}`}>{c.status||'Menunggu Persetujuan'}</div>
+                                                <div className={`inline-flex px-2 py-1 rounded text-[10px] font-bold border ${c.status==='Disetujui'?'bg-emerald-500/20 text-emerald-400 border-emerald-500/30':'bg-amber-500/20 text-amber-400 border-amber-500/30'}`}>{c.status||'Menunggu'}</div>
                                             </div>
                                         </div>
                                     ))}
@@ -874,63 +666,75 @@
                             </div>
                         )}
 
-                        {/* Member History Modal (Timeline) */}
                         {detailModal.open && detailModal.member && (
-                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in overflow-y-auto py-10">
-                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-[calc(100vw-2rem)] md:w-full md:max-w-5xl flex flex-col max-h-[90vh] overflow-hidden">
-                                    <div className="px-4 md:px-6 py-4 md:py-5 border-b border-white/10 flex justify-between items-start sticky top-0 bg-[#16162e] z-10 gap-2">
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 fade-in w-full h-full">
+                                <div className="glass-panel border border-white/10 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[95vh] md:max-h-[90vh] overflow-hidden">
+                                    <div className="px-4 py-3 md:py-4 border-b border-white/10 flex justify-between items-start sticky top-0 bg-[#16162e] z-10 gap-2 shrink-0">
                                         <div className="min-w-0">
-                                            <h3 className="text-base md:text-xl font-bold text-white">
-                                                Riwayat Pembayaran
-                                            </h3>
-                                            <div className="text-[10px] md:text-sm text-white/50 mt-1">
-                                                <span className="font-bold text-white">{detailModal.member.nama}</span>
-                                                <span className="hidden md:inline"> (NIK: {detailModal.member.nik}) | Debt: Rp {detailModal.member.sisaOutstanding.toLocaleString('id-ID')}</span>
-                                                <span className="md:hidden block mt-0.5">NIK: {detailModal.member.nik}</span>
-                                            </div>
+                                            <h3 className="text-sm md:text-xl font-bold text-white truncate">Detail Debitur</h3>
+                                            <div className="text-[10px] md:text-sm text-white/50 mt-0.5 truncate">{detailModal.member.nama} ({detailModal.member.nik})</div>
                                         </div>
-                                        <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-sm md:text-lg"></i></button>
+                                        <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-white/60"><i className="fa-solid fa-xmark"></i></button>
                                     </div>
                                     
-                                    <div className="p-4 md:p-6 overflow-y-auto">
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                            <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center"><div className="text-white/40 text-[10px] font-bold uppercase mb-1">Tingkat Risiko</div><div className={`text-xl font-black ${detailModal.member.riskLevel.id==='RED'?'text-rose-500':detailModal.member.riskLevel.id==='YELLOW'?'text-amber-400':detailModal.member.riskLevel.id==='CRITICAL'?'text-rose-700':'text-emerald-400'}`}>{detailModal.member.riskLevel.id}</div></div>
-                                            <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center"><div className="text-white/40 text-[10px] font-bold uppercase mb-1">Hari Telat (DPD)</div><div className="text-xl font-black text-white">{detailModal.member.dpd} Hari</div></div>
-                                            <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center"><div className="text-white/40 text-[10px] font-bold uppercase mb-1">Freq Telat</div><div className="text-xl font-black text-white">{detailModal.member.lateFreq}x</div></div>
-                                            <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center"><div className="text-white/40 text-[10px] font-bold uppercase mb-1">Max Pinjaman</div><div className="text-lg font-black text-white/80">Rp {(detailModal.member.totalPinjamanAwal/1000000).toFixed(1)}Jt</div></div>
+                                    <div className="p-3 md:p-6 overflow-y-auto w-full">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+                                            <div className="bg-white/5 border border-white/10 p-2 md:p-4 rounded-xl text-center"><div className="text-white/40 text-[9px] md:text-[10px] font-bold uppercase mb-1">Risiko</div><div className={`text-sm md:text-xl font-black ${detailModal.member.riskLevel.id==='RED'?'text-rose-500':detailModal.member.riskLevel.id==='YELLOW'?'text-amber-400':detailModal.member.riskLevel.id==='CRITICAL'?'text-rose-700':'text-emerald-400'}`}>{detailModal.member.riskLevel.id}</div></div>
+                                            <div className="bg-white/5 border border-white/10 p-2 md:p-4 rounded-xl text-center"><div className="text-white/40 text-[9px] md:text-[10px] font-bold uppercase mb-1">DPD</div><div className="text-sm md:text-xl font-black text-white">{detailModal.member.dpd} Hr</div></div>
+                                            <div className="bg-white/5 border border-white/10 p-2 md:p-4 rounded-xl text-center"><div className="text-white/40 text-[9px] md:text-[10px] font-bold uppercase mb-1">Freq Telat</div><div className="text-sm md:text-xl font-black text-white">{detailModal.member.lateFreq}x</div></div>
+                                            <div className="bg-white/5 border border-white/10 p-2 md:p-4 rounded-xl text-center"><div className="text-white/40 text-[9px] md:text-[10px] font-bold uppercase mb-1">Plafon Max</div><div className="text-xs md:text-lg font-black text-white/80">Rp {(detailModal.member.totalPinjamanAwal/1000000).toFixed(1)}Jt</div></div>
                                         </div>
 
-                                        <div className="mb-6 bg-black/20 border border-white/10 p-4 rounded-xl">
-                                            <h4 className="font-bold text-white/70 mb-3 text-xs uppercase tracking-wider border-l-2 border-emerald-500 pl-2">Grafik Tren Risiko Pinjaman</h4>
+                                        <div className="mb-4 md:mb-6 bg-black/20 border border-white/10 p-3 md:p-4 rounded-xl">
+                                            <h4 className="font-bold text-white/70 mb-2 text-[10px] md:text-xs uppercase tracking-wider border-l-2 border-emerald-500 pl-2">Tren Risiko</h4>
                                             <MemberTrendChart history={detailModal.member.history} />
                                         </div>
 
-                                        <h4 className="font-bold text-white/70 mb-3 text-xs uppercase tracking-wider border-l-2 border-purple-500 pl-2">Timeline Transaksi</h4>
-                                        <div className="border border-white/10 rounded-xl overflow-x-auto">
+                                        <h4 className="font-bold text-white/70 mb-2 text-[10px] md:text-xs uppercase tracking-wider border-l-2 border-purple-500 pl-2">Riwayat Transaksi</h4>
+                                        
+                                        {/* Tampilan Mobile: Kartu Timeline Vertikal */}
+                                        <div className="md:hidden flex flex-col gap-3">
+                                            {[...detailModal.member.history].reverse().map((h, i) => {
+                                                const pending = Number(h?.sisa_pending) || 0;
+                                                const debet = Number(h?.berhasil_debet) || 0;
+                                                const target = Number(h?.total_potongan) || 0;
+                                                return (
+                                                    <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs">
+                                                        <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
+                                                            <span className="font-bold text-white">{formatBulan(h?.periode)}</span>
+                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${(pending>0 || debet<target)?'bg-rose-500/20 text-rose-300':'bg-emerald-500/20 text-emerald-300'}`}>{h?.keterangan || (pending>0?'Bermasalah':'Lancar')}</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 mb-2">
+                                                            <div><div className="text-white/40 text-[9px]">Target Potong</div><div>Rp {target.toLocaleString('id-ID')}</div></div>
+                                                            <div><div className="text-white/40 text-[9px]">Berhasil Debet</div><div className={debet>=target?'text-emerald-400':(debet>0?'text-amber-400':'text-rose-400')}>Rp {debet.toLocaleString('id-ID')}</div></div>
+                                                        </div>
+                                                        <div className="bg-black/30 p-2 rounded-lg flex justify-between items-center">
+                                                            <span className="text-white/50 text-[10px]">Tunggakan:</span>
+                                                            <span className="font-bold text-rose-400">Rp {pending.toLocaleString('id-ID')}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Tampilan Desktop: Tabel Timeline */}
+                                        <div className="hidden md:block border border-white/10 rounded-xl overflow-x-auto">
                                             <table className="w-full text-left text-sm whitespace-nowrap">
                                                 <thead className="bg-black/40 text-white/50 text-[11px] uppercase tracking-wider">
-                                                    <tr><th className="p-3">Periode</th><th className="p-3">Jatuh Tempo</th><th className="p-3 text-right">Target Potong</th><th className="p-3 text-right">Berhasil Debet</th><th className="p-3 text-right">Pending/Tunggakan</th><th className="p-3">Status</th></tr>
+                                                    <tr><th className="p-3">Periode</th><th className="p-3 text-right">Target Potong</th><th className="p-3 text-right">Berhasil Debet</th><th className="p-3 text-right">Tunggakan</th><th className="p-3">Status</th></tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/10">
                                                     {[...detailModal.member.history].reverse().map((h, i) => {
                                                         const pending = Number(h?.sisa_pending) || 0;
                                                         const debet = Number(h?.berhasil_debet) || 0;
                                                         const target = Number(h?.total_potongan) || 0;
-                                                        const isDefaulter = pending > 0 || (target > 0 && debet < target);
-                                                        
                                                         return (
-                                                            <tr key={i} className="bg-white/[0.02] hover:bg-white/[0.05]">
-                                                                <td className="p-3 font-bold text-white/80">{formatBulan(h?.periode)}</td>
-                                                                <td className="p-3 text-white/60">{h?.tgl_jatuh_tempo ? new Date(h.tgl_jatuh_tempo).toLocaleDateString('id-ID') : '-'}</td>
-                                                                <td className="p-3 text-right text-white/70">Rp {target.toLocaleString('id-ID')}</td>
-                                                                <td className={`p-3 text-right font-bold ${debet >= target && target > 0 ? 'text-emerald-400' : (debet > 0 ? 'text-amber-400' : 'text-rose-400')}`}>Rp {debet.toLocaleString('id-ID')}</td>
+                                                            <tr key={i} className="hover:bg-white/[0.05]">
+                                                                <td className="p-3 font-bold">{formatBulan(h?.periode)}</td>
+                                                                <td className="p-3 text-right">Rp {target.toLocaleString('id-ID')}</td>
+                                                                <td className={`p-3 text-right font-bold ${debet>=target?'text-emerald-400':'text-rose-400'}`}>Rp {debet.toLocaleString('id-ID')}</td>
                                                                 <td className="p-3 text-right font-bold text-rose-400">Rp {pending.toLocaleString('id-ID')}</td>
-                                                                <td className="p-3">
-                                                                    <div className="flex flex-col gap-1 items-start">
-                                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isDefaulter?'bg-rose-500/20 text-rose-300':'bg-emerald-500/20 text-emerald-300'}`}>{h?.keterangan || (isDefaulter?'Bermasalah':'Lancar')}</span>
-                                                                        {h?.alasan_telat && <span className="text-[9px] text-white/40 italic">{h.alasan_telat}</span>}
-                                                                    </div>
-                                                                </td>
+                                                                <td className="p-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${(pending>0)?'bg-rose-500/20 text-rose-300':'bg-emerald-500/20 text-emerald-300'}`}>{h?.keterangan || (pending>0?'Masalah':'Lancar')}</span></td>
                                                             </tr>
                                                         );
                                                     })}
@@ -942,87 +746,60 @@
                             </div>
                         )}
 
-                        {/* Pengajuan Kasus Modal */}
-                        {pengajuanModal.open && (
-                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
-                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-[calc(100vw-2rem)] md:w-full md:max-w-md p-6 overflow-hidden">
-                                    <h3 className="text-xl font-bold text-white mb-2">Formulir Eskalasi</h3>
-                                    <p className="text-sm text-white/50 mb-5">Tarik debitur dengan status RED atau CRITICAL ke tab Penyelesaian.</p>
-                                    <form onSubmit={handleAjukanKasus}>
-                                        <div className="mb-4">
-                                            <label className="block text-xs font-bold text-white/50 mb-1.5 uppercase">Pilih Debitur Bermasalah</label>
-                                            <select name="loanId" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-purple-500">
-                                                <option value="" className="bg-slate-900">-- Pilih Debitur --</option>
-                                                {loans.filter(l=>l.riskLevel.id==='CRITICAL' || l.riskLevel.id==='RED').map(l=><option key={l.id} value={l.id} className="bg-slate-900">{l.nama} (Risk: {l.riskLevel.id})</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="mb-6">
-                                            <label className="block text-xs font-bold text-white/50 mb-1.5 uppercase">Alasan Eskalasi Utama</label>
-                                            <select name="alasan" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-purple-500">
-                                                <option value="" className="bg-slate-900">-- Pilih Alasan --</option>
-                                                <option value="Macet Total > 3 Bulan" className="bg-slate-900">Macet Total &gt; 3 Bulan</option>
-                                                <option value="PHK Menunggak" className="bg-slate-900">Resign / PHK Menunggak</option>
-                                                <option value="Klaim Asuransi (Meninggal/Cacat)" className="bg-slate-900">Klaim Asuransi (Meninggal/Cacat)</option>
-                                                <option value="Tindakan Hukum / Somasi" className="bg-slate-900">Proses Somasi / Legal</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-                                            <button type="button" onClick={()=>setPengajuanModal({open:false})} className="px-5 py-2.5 text-white/50 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">Batal</button>
-                                            <button type="submit" disabled={isRefreshing} className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg transition-colors">{isRefreshing?'Processing...':'Ekskalasi Kasus'}</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Risk Modal (Export Excel/CSV) */}
-                        {riskModal.open && riskModal.level && RISK_LEVELS[riskModal.level] && (
-                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in overflow-y-auto py-10">
-                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-[calc(100vw-2rem)] md:w-full md:max-w-5xl flex flex-col max-h-[90vh] overflow-hidden">
-                                    <div className="px-4 md:px-6 py-4 md:py-5 border-b border-white/10 flex justify-between items-start md:items-center sticky top-0 bg-[#16162e] z-10 gap-2">
-                                        <div>
-                                            <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2 md:gap-3">
-                                                Daftar Debitur: <span className={`px-2 py-1 rounded text-xs border ${RISK_LEVELS[riskModal.level].color}`}>{riskModal.level}</span>
+                        {riskModal.open && riskModal.level && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 fade-in w-full h-full">
+                                <div className="glass-panel border border-white/10 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[95vh] md:max-h-[90vh] overflow-hidden">
+                                    <div className="px-4 py-3 md:py-4 border-b border-white/10 flex justify-between items-start md:items-center sticky top-0 bg-[#16162e] z-10 gap-2 shrink-0">
+                                        <div className="min-w-0">
+                                            <h3 className="text-sm md:text-xl font-bold text-white flex items-center gap-2 truncate">
+                                                Debitur: <span className={`px-2 py-0.5 rounded text-[10px] border ${RISK_LEVELS[riskModal.level].color}`}>{riskModal.level}</span>
                                             </h3>
-                                            <p className="text-xs md:text-sm text-white/50 mt-1">Total {loans.filter(l => l.riskLevel.id === riskModal.level).length} anggota dalam kategori ini.</p>
+                                            <p className="text-[10px] md:text-sm text-white/50 mt-0.5 truncate">{loans.filter(l => l.riskLevel.id === riskModal.level).length} anggota</p>
                                         </div>
-                                        <div className="flex flex-col md:flex-row gap-2">
-                                            <button onClick={() => exportToCSV(loans.filter(l => l.riskLevel.id === riskModal.level), `Data_Debitur_${riskModal.level}`)} className="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg transition-colors flex items-center justify-center gap-2">
-                                                <i className="fa-solid fa-file-excel"></i> <span className="hidden md:inline">Download Excel (CSV)</span><span className="md:hidden">CSV</span>
-                                            </button>
-                                            <button onClick={()=>setRiskModal({open:false, level:null})} className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-sm md:text-lg"></i></button>
+                                        <div className="flex gap-2 shrink-0">
+                                            <button onClick={() => exportToCSV(loans.filter(l => l.riskLevel.id === riskModal.level), `Data_${riskModal.level}`)} className="px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5"><i className="fa-solid fa-file-excel"></i> <span className="hidden sm:inline">CSV</span></button>
+                                            <button onClick={()=>setRiskModal({open:false, level:null})} className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-white/5 flex items-center justify-center text-white/60"><i className="fa-solid fa-xmark"></i></button>
                                         </div>
                                     </div>
                                     
-                                    <div className="p-4 md:p-6 overflow-y-auto">
-                                        <div className="border border-white/10 rounded-xl overflow-x-auto">
+                                    <div className="p-3 md:p-6 overflow-y-auto w-full">
+                                        
+                                        {/* Tampilan Mobile: List Card */}
+                                        <div className="md:hidden flex flex-col gap-3">
+                                            {loans.filter(l => l.riskLevel.id === riskModal.level).length === 0 ? (
+                                                <div className="p-6 text-center text-white/40 text-sm">Tidak ada data.</div>
+                                            ) : loans.filter(l => l.riskLevel.id === riskModal.level).map(l => (
+                                                <div key={l.id} className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs relative">
+                                                    {l.dpd > 0 && <div className="absolute top-3 right-3 bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded text-[9px] font-bold">{l.dpd} Hr</div>}
+                                                    <div className="font-bold text-white pr-10">{l.nama}</div>
+                                                    <div className="text-white/50 text-[10px] mb-2">{l.nik} &bull; {l.site}</div>
+                                                    <div className="grid grid-cols-2 gap-2 text-[10px] bg-black/20 p-2 rounded-lg mb-2">
+                                                        <div><span className="text-white/40 block">Target:</span> Rp {l.targetPotongan.toLocaleString('id-ID')}</div>
+                                                        <div><span className="text-white/40 block">Debet:</span> <span className="text-emerald-300">Rp {l.berhasilDebet.toLocaleString('id-ID')}</span></div>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="text-white/50 text-[10px]">Tunggakan:</span>
+                                                        <span className="font-bold text-rose-400">Rp {l.sisaPending.toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Tampilan Desktop: Tabel */}
+                                        <div className="hidden md:block border border-white/10 rounded-xl overflow-x-auto">
                                             <table className="w-full text-left text-sm whitespace-nowrap">
                                                 <thead className="bg-black/40 text-white/50 text-[11px] uppercase tracking-wider">
-                                                    <tr>
-                                                        <th className="p-3">Nama / NIK</th>
-                                                        <th className="p-3">Site</th>
-                                                        <th className="p-3 text-right">Target Potong</th>
-                                                        <th className="p-3 text-right">Berhasil Debet</th>
-                                                        <th className="p-3 text-right text-rose-300">Tunggakan (Pending)</th>
-                                                        <th className="p-3 text-center">DPD</th>
-                                                    </tr>
+                                                    <tr><th className="p-3">Nama / NIK</th><th className="p-3">Site</th><th className="p-3 text-right">Target Potong</th><th className="p-3 text-right">Berhasil Debet</th><th className="p-3 text-right text-rose-300">Tunggakan</th><th className="p-3 text-center">DPD</th></tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/10">
-                                                    {loans.filter(l => l.riskLevel.id === riskModal.level).length === 0 ? (
-                                                        <tr><td colSpan="6" className="p-6 text-center text-white/40">Tidak ada data untuk kategori ini.</td></tr>
-                                                    ) : loans.filter(l => l.riskLevel.id === riskModal.level).map(l => (
-                                                        <tr key={l.id} className="bg-white/[0.02] hover:bg-white/[0.05]">
-                                                            <td className="p-3">
-                                                                <div className="font-bold text-white/90">{l.nama}</div>
-                                                                <div className="text-[10px] text-white/40">{l.nik}</div>
-                                                            </td>
-                                                            <td className="p-3 text-white/70">{l.site}</td>
-                                                            <td className="p-3 text-right text-white/70">Rp {l.targetPotongan.toLocaleString('id-ID')}</td>
-                                                            <td className="p-3 text-right text-emerald-300 font-medium">Rp {l.berhasilDebet.toLocaleString('id-ID')}</td>
+                                                    {loans.filter(l => l.riskLevel.id === riskModal.level).map(l => (
+                                                        <tr key={l.id} className="hover:bg-white/[0.05]">
+                                                            <td className="p-3"><div className="font-bold">{l.nama}</div><div className="text-[10px] text-white/40">{l.nik}</div></td>
+                                                            <td className="p-3">{l.site}</td>
+                                                            <td className="p-3 text-right">Rp {l.targetPotongan.toLocaleString('id-ID')}</td>
+                                                            <td className="p-3 text-right text-emerald-300">Rp {l.berhasilDebet.toLocaleString('id-ID')}</td>
                                                             <td className="p-3 text-right text-rose-400 font-bold">Rp {l.sisaPending.toLocaleString('id-ID')}</td>
-                                                            <td className="p-3 text-center">
-                                                                {l.dpd > 0 ? <span className="bg-rose-500/20 text-rose-300 px-2 py-1 rounded text-[10px] font-bold">{l.dpd} Hr</span> : <span className="text-white/40">-</span>}
-                                                            </td>
+                                                            <td className="p-3 text-center">{l.dpd > 0 ? <span className="bg-rose-500/20 text-rose-300 px-2 py-1 rounded text-[10px] font-bold">{l.dpd} Hr</span> : '-'}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -1032,75 +809,55 @@
                                 </div>
                             </div>
                         )}
-                        
-                    </main>
 
-                    {/* MODAL PANDUAN KPI */}
-                    {guideModal && (
-                        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setGuideModal(false)}></div>
-                            <div className="glass-panel border border-white/20 rounded-2xl w-[calc(100vw-2rem)] md:w-full md:max-w-2xl max-h-[85vh] flex flex-col relative z-10 overflow-hidden shadow-2xl scale-100 transition-all fade-in">
-                                <div className="p-4 md:p-5 border-b border-white/10 flex justify-between items-start md:items-center bg-white/5">
-                                    <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2 md:gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0"><i className="fa-solid fa-book-open"></i></div>
-                                        Panduan Indikator Kinerja (KPI)
-                                    </h3>
-                                    <button onClick={() => setGuideModal(false)} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-lg"></i></button>
-                                </div>
-                                <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar space-y-6 text-xs md:text-sm text-white/80">
-                                    
-                                    <div>
-                                        <h4 className="font-bold text-white text-lg mb-3 border-b border-white/10 pb-2">1. Kategori Risiko</h4>
-                                        <div className="space-y-4">
-                                            <div className="flex gap-4">
-                                                <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30"><i className="fa-solid fa-triangle-exclamation"></i></div>
-                                                <div>
-                                                    <div className="font-bold text-amber-400 mb-1">YELLOW (Warning / Peringatan Awal)</div>
-                                                    <p>Anggota ini baru pertama kali telat bayar (frekuensi telat = 1) atau baru memiliki sedikit tunggakan sisa. Ini adalah lampu kuning agar pengurus mulai melakukan konfirmasi ringan.</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <div className="w-10 h-10 shrink-0 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30"><i className="fa-solid fa-fire"></i></div>
-                                                <div>
-                                                    <div className="font-bold text-rose-400 mb-1">RED (Bermasalah)</div>
-                                                    <p>Anggota ini sudah menunggak setidaknya 2 bulan berturut-turut, atau nominal tunggakannya sudah sangat besar (setara 2x lipat dari target cicilannya). Butuh penagihan intensif.</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-800 text-red-500 flex items-center justify-center border border-red-500/50"><i className="fa-solid fa-skull-crossbones"></i></div>
-                                                <div>
-                                                    <div className="font-bold text-red-500 mb-1">CRITICAL (Macet / Kritis)</div>
-                                                    <p>Risiko tertinggi! Anggota ini sudah menunggak sangat lama (di atas 4 bulan/60 hari) atau berstatus "gagal total/macet". Harus segera disidangkan atau diajukan penyelesaian khusus (Write-off).</p>
-                                                </div>
-                                            </div>
+                        {pengajuanModal.open && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
+                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-5 md:p-6">
+                                    <h3 className="text-lg md:text-xl font-bold text-white mb-1">Eskalasi Kasus</h3>
+                                    <p className="text-xs text-white/50 mb-4">Tarik debitur RED/CRITICAL ke tab Penyelesaian.</p>
+                                    <form onSubmit={handleAjukanKasus}>
+                                        <div className="mb-4">
+                                            <label className="block text-[10px] font-bold text-white/50 mb-1 uppercase">Pilih Debitur</label>
+                                            <select name="loanId" required className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none text-white">
+                                                <option value="" className="bg-slate-900">-- Pilih --</option>
+                                                {loans.filter(l=>l.riskLevel.id==='CRITICAL' || l.riskLevel.id==='RED').map(l=><option key={l.id} value={l.id} className="bg-slate-900">{l.nama}</option>)}
+                                            </select>
                                         </div>
-                                    </div>
-
-                                    <div>
-                                        <h4 className="font-bold text-white text-lg mb-3 border-b border-white/10 pb-2">2. Metrik Keuangan & Peringatan</h4>
-                                        <ul className="space-y-3">
-                                            <li>
-                                                <strong className="text-rose-300">Total Tunggakan:</strong> Jumlah uang cicilan yang <b>sudah lewat jatuh tempo</b> (tertunggak) di bulan tersebut, namun belum dibayar oleh anggota. Ini adalah uang tunai macet yang seharusnya sudah masuk ke kas koperasi.
-                                            </li>
-                                            <li>
-                                                <strong className="text-blue-300">Exposure Outstanding:</strong> Berbeda dengan tunggakan, ini adalah <b>total SISA SELURUH HUTANG</b> dari orang-orang yang bermasalah. Ini menunjukkan <i>Maximum Risk</i> atau potensi kerugian total jika orang tersebut kabur atau di-PHK.
-                                            </li>
-                                            <li>
-                                                <strong className="text-amber-300">Early Warning:</strong> Angka yang menunjukkan jumlah kasus yang memicu "Alarm Pintar" dari algoritma sistem. Alarm ini mendeteksi anomali seperti anggota yang tiba-tiba gagal debet, rasio sisa hutangnya masih terlalu tinggi (&gt;80%), atau sering membayar cicilan dengan nominal parsial (tidak penuh).
-                                            </li>
-                                        </ul>
-                                    </div>
-
-                                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl text-blue-200 text-xs">
-                                        <i className="fa-solid fa-circle-info mr-2"></i><b>Catatan:</b> Indikator <b>GREEN (Lancar)</b> sengaja disembunyikan dari dashboard karena data mentah saat ini berfokus secara eksklusif pada debitur yang bermasalah atau gagal bayar.
-                                    </div>
-                                </div>
-                                <div className="p-5 border-t border-white/10 bg-black/20 text-right">
-                                    <button onClick={() => setGuideModal(false)} className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-colors">Tutup Panduan</button>
+                                        <div className="mb-5">
+                                            <label className="block text-[10px] font-bold text-white/50 mb-1 uppercase">Alasan</label>
+                                            <select name="alasan" required className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none text-white">
+                                                <option value="" className="bg-slate-900">-- Pilih Alasan --</option>
+                                                <option value="Macet Total > 3 Bulan" className="bg-slate-900">Macet Total &gt; 3 Bulan</option>
+                                                <option value="PHK Menunggak" className="bg-slate-900">Resign / PHK Menunggak</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+                                            <button type="button" onClick={()=>setPengajuanModal({open:false})} className="px-4 py-2 text-white/50 text-sm font-medium">Batal</button>
+                                            <button type="submit" disabled={isRefreshing} className="px-4 py-2 bg-rose-600 text-white text-sm font-bold rounded-xl shadow-lg">{isRefreshing?'Proses...':'Eskalasi'}</button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {guideModal && (
+                            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setGuideModal(false)}></div>
+                                <div className="glass-panel border border-white/20 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col relative z-10 overflow-hidden shadow-2xl fade-in">
+                                    <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5 shrink-0">
+                                        <h3 className="text-base font-bold text-white flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs"><i className="fa-solid fa-book-open"></i></div>Panduan KPI</h3>
+                                        <button onClick={() => setGuideModal(false)} className="w-8 h-8 rounded-full hover:bg-white/10 text-white/50"><i className="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                    <div className="p-4 overflow-y-auto text-xs md:text-sm text-white/80 space-y-4">
+                                        <p><b>YELLOW (Warning):</b> Telat bayar 1x atau punya sedikit tunggakan. Butuh konfirmasi ringan.</p>
+                                        <p><b>RED (Bermasalah):</b> Menunggak 2 bulan berturut-turut atau tunggakan 2x lipat target. Butuh penagihan.</p>
+                                        <p><b>CRITICAL (Macet):</b> Menunggak &gt;4 bulan. Risiko tertinggi, butuh penyelesaian khusus.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                    </main>
                 </div>
             );
         }
