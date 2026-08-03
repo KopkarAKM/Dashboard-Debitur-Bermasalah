@@ -27,6 +27,9 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
         
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .gradient-accent { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .gradient-risk-green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         .gradient-risk-yellow { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); }
@@ -627,7 +630,7 @@
                         </div>
                     </header>
 
-                    <main className="p-6 max-w-7xl mx-auto mt-4">
+                    <main className="p-4 md:p-6 max-w-7xl mx-auto mt-2 md:mt-4">
                         
                         {}
                         {/* TAB: DASHBOARD ANALYTICS */}
@@ -828,17 +831,17 @@
                         {detailModal.open && detailModal.member && (
                             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in overflow-y-auto py-10">
                                 <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh]">
-                                    <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#16162e] z-10 rounded-t-2xl">
+                                    <div className="px-4 md:px-6 py-4 md:py-5 border-b border-white/10 flex justify-between items-start md:items-center sticky top-0 bg-[#16162e] z-10 rounded-t-2xl gap-2">
                                         <div>
-                                            <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                            <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2 md:gap-3">
                                                 Riwayat Pembayaran Longitudinal
                                             </h3>
-                                            <div className="text-sm text-white/50 mt-1"><span className="font-bold text-white">{detailModal.member.nama}</span> (NIK: {detailModal.member.nik}) | Debt: Rp {detailModal.member.sisaOutstanding.toLocaleString('id-ID')}</div>
+                                            <div className="text-xs md:text-sm text-white/50 mt-1"><span className="font-bold text-white">{detailModal.member.nama}</span> (NIK: {detailModal.member.nik}) | Debt: Rp {detailModal.member.sisaOutstanding.toLocaleString('id-ID')}</div>
                                         </div>
-                                        <button onClick={()=>setDetailModal({open:false, member:null})} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-lg"></i></button>
+                                        <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-sm md:text-lg"></i></button>
                                     </div>
                                     
-                                    <div className="p-6 overflow-y-auto">
+                                    <div className="p-4 md:p-6 overflow-y-auto">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                             <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center"><div className="text-white/40 text-[10px] font-bold uppercase mb-1">Tingkat Risiko</div><div className={`text-xl font-black ${detailModal.member.riskLevel.id==='RED'?'text-rose-500':detailModal.member.riskLevel.id==='YELLOW'?'text-amber-400':detailModal.member.riskLevel.id==='CRITICAL'?'text-rose-700':'text-emerald-400'}`}>{detailModal.member.riskLevel.id}</div></div>
                                             <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-center"><div className="text-white/40 text-[10px] font-bold uppercase mb-1">Hari Telat (DPD)</div><div className="text-xl font-black text-white">{detailModal.member.dpd} Hari</div></div>
@@ -852,7 +855,7 @@
                                         </div>
 
                                         <h4 className="font-bold text-white/70 mb-3 text-xs uppercase tracking-wider border-l-2 border-purple-500 pl-2">Timeline Transaksi</h4>
-                                        <div className="border border-white/10 rounded-xl overflow-hidden">
+                                        <div className="border border-white/10 rounded-xl overflow-x-auto">
                                             <table className="w-full text-left text-sm whitespace-nowrap">
                                                 <thead className="bg-black/40 text-white/50 text-[11px] uppercase tracking-wider">
                                                     <tr><th className="p-3">Periode</th><th className="p-3">Jatuh Tempo</th><th className="p-3 text-right">Target Potong</th><th className="p-3 text-right">Berhasil Debet</th><th className="p-3 text-right">Pending/Tunggakan</th><th className="p-3">Status</th></tr>
