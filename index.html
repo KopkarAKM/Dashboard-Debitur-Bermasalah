@@ -44,16 +44,6 @@
         
         .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: skeletonLoading 1.5s infinite; border-radius: 8px; }
         @keyframes skeletonLoading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-        /* Khusus Mobile - Mengubah tabel menjadi card */
-        @media (max-width: 767px) {
-            .mobile-card-row { display: flex; flex-direction: column; gap: 0.75rem; }
-            .mobile-card-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; padding: 1rem; }
-            .desktop-table { display: none; }
-        }
-        @media (min-width: 768px) {
-            .mobile-card-row { display: none; }
-        }
     </style>
 </head>
 <body class="min-h-screen text-white antialiased" style="background: linear-gradient(180deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%); background-attachment: fixed;">
@@ -164,6 +154,104 @@
                 toastTimerRef.current = setTimeout(() => setToast({ msg: null, type: 'info' }), 4000); 
             };
 
+            const printWarningLetter = (member) => {
+                const now = new Date();
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                const currentMonthName = months[currentMonth];
+                const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+                
+                let prevMonthIndex = currentMonth - 1;
+                let prevYear = currentYear;
+                if (prevMonthIndex < 0) {
+                    prevMonthIndex = 11;
+                    prevYear--;
+                }
+                const prevMonthName = months[prevMonthIndex];
+
+                const printWindow = window.open('', '_blank');
+                const htmlContent = `
+                    <html>
+                    <head>
+                        <title>Surat Peringatan - ${member.nama}</title>
+                        <style>
+                            body { font-family: 'Times New Roman', Times, serif; padding: 40px; color: #000; line-height: 1.5; font-size: 12pt; max-width: 800px; margin: 0 auto; background: #fff; }
+                            .header { display: flex; align-items: center; border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 30px; }
+                            .logo { width: 100px; height: auto; margin-right: 30px; }
+                            .header-text { text-align: center; flex: 1; }
+                            .header-text h2 { margin: 0; font-size: 18pt; font-family: Arial, sans-serif; }
+                            .header-text p { margin: 3px 0; font-size: 11pt; font-family: Arial, sans-serif; }
+                            .content { text-align: justify; }
+                            ol { margin-top: 5px; margin-bottom: 15px; padding-left: 20px; }
+                            @media print {
+                                body { padding: 0; }
+                                @page { margin: 2cm; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <img src="https://i.ibb.co.com/WvTwLMn5/image-1.png" alt="Logo" class="logo" onload="window.print();" />
+                            <div class="header-text">
+                                <h2>KOPERASI KARYAWAN ADARO KARYA MANDIRI</h2>
+                                <p>Badan Hukum Nomor : 2128/BH/IX Tanggal 31 Juli 1995</p>
+                                <p>Office : Jl. Jend. A. Yani Komp. Swadharma Jalur II Blok Mawar RT IV</p>
+                                <p>Kel. Mabuun Kec. Murung Pudak Kab. Tabalong Prov. Kalimantan Selatan</p>
+                                <p>Kode Pos 71571 Telp/Fax : 0526 – 2023593 email : kopkar.adaro@gmail.com</p>
+                            </div>
+                        </div>
+                        <div class="content">
+                            <p>Kepada Yth Bapak/Ibu <strong>${member.nama}</strong><br>
+                            NRP: ${member.nik} | Site: ${member.site}</p>
+                            
+                            <p>Berdasarkan laporan payroll koperasi, pendebetan rekening Anda untuk bulan ${currentMonthName} ${currentYear} gagal karena saldo tidak mencukupi.</p>
+                            
+                            <p>Berikut rincian tagihan Anda:</p>
+                            <ol>
+                                <li>Simpanan Wajib: Rp 100.000</li>
+                                <li>Simpanan Sukarela: Rp 0</li>
+                                <li>Tagihan Pokok: Rp ${member.sisaOutstanding.toLocaleString('id-ID')}</li>
+                                <li>Denda Administrasi: Rp 0</li>
+                                <li>Total Pendingan: Rp ${member.sisaPending.toLocaleString('id-ID')}</li>
+                            </ol>
+                            
+                            <p>Anda wajib melakukan pembayaran paling lambat tanggal <strong>${lastDay} ${currentMonthName} ${currentYear}</strong>.</p>
+                            
+                            <p>Berikut cara penyelesaian kewajiban Anda:</p>
+                            <ol>
+                                <li>Transfer tagihan Anda ke Bank Mandiri No. Rekening 0310098896775 Atas Nama Karyawan Adaro Karya.</li>
+                                <li>Kirim bukti transfer ke WhatsApp admin Koperasi di nomor 082152386718.</li>
+                                <li>Admin akan memverifikasi dan memperbarui status tagihan Anda menjadi lunas.</li>
+                            </ol>
+                            
+                            <p>Keuntungan menyelesaikan tagihan tepat waktu:<br>
+                            Seluruh akses layanan anggota Anda di koperasi akan segera kami buka kembali setelah Anda menyelesaikan kewajiban pembayaran.</p>
+                            
+                            <p>Konsekuensi jika gagal bayar melewati batas waktu:</p>
+                            <ol>
+                                <li>Pengenaan denda administrasi 1.5 persen per bulan dari pokok tunggakan.</li>
+                                <li>Pemblokiran seluruh layanan koperasi.</li>
+                                <li>Pemanggilan pertemuan formal oleh Pengurus Koperasi untuk klarifikasi.</li>
+                                <li>Eskalasi resmi ke HR dan Atasan. Perusahaan dapat memberikan tindakan disiplin sesuai Pasal 58 Ayat 1 poin 21 jika masalah pinjaman ini berlarut.</li>
+                            </ol>
+                            
+                            <p>Segera hubungi kami melalui nomor WhatsApp di atas untuk konfirmasi pembayaran atau diskusi lebih lanjut. Terima kasih atas kerja sama Anda.</p>
+                            
+                            <div style="margin-top: 40px;">
+                                <p>Hormat kami,</p>
+                                <p style="margin-top: 80px;"><strong>Pengurus Koperasi Karyawan Adaro Karya Mandiri</strong></p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                printWindow.document.open();
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+            };
+
             const exportToCSV = (data, filename) => {
                 if (data.length === 0) return;
                 const headers = ["NRP", "Nama", "Site", "Target Potongan", "Berhasil Debet", "Sisa Outstanding", "Tunggakan (Pending)", "DPD", "Keterangan"];
@@ -210,7 +298,7 @@
             // AI: Fungsi Pemindai Teks Keterangan
             const analyzeKeterangan = (keterangan) => {
                 if (!keterangan) return { isLegacy: false, insight: null, severity: 0 };
-                const text = keterangan.toLowerCase();
+                const text = String(keterangan).toLowerCase();
                 let insight = null;
                 let isLegacy = false;
                 let severity = 0; // 0: aman, 1: warning, 2: kritis
@@ -304,7 +392,7 @@
                     }
 
                     // --- JALANKAN AI PEMINDAI KETERANGAN ---
-                    const statusKet = (latest?.keterangan || '').toLowerCase();
+                    const statusKet = String(latest?.keterangan || '').toLowerCase();
                     const textAnalysis = analyzeKeterangan(latest?.keterangan);
                     
                     if (textAnalysis.insight) {
@@ -575,10 +663,10 @@
                                 <div className="mb-4"><h2 className="text-lg md:text-2xl font-bold text-white">Pemantauan Debitur</h2></div>
                                 
                                 {/* Mobile View - Card Vertikal */}
-                                <div className="mobile-card-row">
+                                <div className="flex flex-col gap-3 md:hidden">
                                     {loans.length === 0 && <div className="py-10 text-center text-white/30 glass-panel rounded-xl"><i className="fa-solid fa-box-open text-2xl mb-2 block"></i>Belum ada data.</div>}
                                     {loans.map(loan => (
-                                        <div key={loan.id} className="mobile-card-item">
+                                        <div key={loan.id} className="bg-white/5 border border-white/10 rounded-2xl p-4">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
                                                     <div className="font-bold text-white/90 text-sm flex items-center gap-1.5 flex-wrap">
@@ -614,7 +702,7 @@
                                 </div>
 
                                 {/* Desktop View - Table */}
-                                <div className="desktop-table glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                                <div className="hidden md:block glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
                                             <thead className="bg-white/5 border-b border-white/10 text-white/60">
@@ -689,7 +777,14 @@
                                             <h3 className="text-base font-bold text-white">{detailModal.member.nama}</h3>
                                             <div className="text-[10px] text-white/50">{detailModal.member.nik} | Rp {detailModal.member.sisaOutstanding.toLocaleString('id-ID')}</div>
                                         </div>
-                                        <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60"><i className="fa-solid fa-xmark"></i></button>
+                                        <div className="flex items-center gap-2">
+                                            {detailModal.member.riskLevel.id === 'CRITICAL' && (
+                                                <button onClick={() => printWarningLetter(detailModal.member)} className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
+                                                    <i className="fa-solid fa-print"></i> <span className="hidden sm:inline">Surat Peringatan</span>
+                                                </button>
+                                            )}
+                                            <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60"><i className="fa-solid fa-xmark"></i></button>
+                                        </div>
                                     </div>
                                     
                                     <div className="p-4 overflow-y-auto w-full">
