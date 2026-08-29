@@ -218,32 +218,38 @@
                 const currentMonthName = months[currentMonth];
                 const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
                 
-                let prevMonthIndex = currentMonth - 1;
-                let prevYear = currentYear;
-                if (prevMonthIndex < 0) {
-                    prevMonthIndex = 11;
-                    prevYear--;
-                }
-                const prevMonthName = months[prevMonthIndex];
+                const spCode = member.actionPriority?.code === 'P1' ? 'SP-KERAS' : 'SP-1';
+                const spNumber = `${member.nik || '00'}/${spCode}/KOPKAR-AKM/${currentMonth + 1}/${currentYear}`;
 
                 const printWindow = window.open('', '_blank');
                 const htmlContent = `
+                    <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>Surat Peringatan - ${member.nama}</title>
+                        <title>Surat Peringatan Resmi - ${member.nama}</title>
                         <style>
-                            body { font-family: 'Times New Roman', Times, serif; padding: 40px; color: #000; line-height: 1.5; font-size: 12pt; max-width: 800px; margin: 0 auto; background: #fff; }
-                            .header { display: flex; align-items: center; border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 30px; }
-                            .logo { width: 100px; height: auto; margin-right: 30px; }
+                            @page { size: A4; margin: 15mm 20mm; }
+                            body { font-family: 'Times New Roman', Times, serif; color: #0f172a; line-height: 1.45; font-size: 11pt; max-width: 800px; margin: 0 auto; background: #fff; }
+                            .header { display: flex; align-items: center; border-bottom: 2.5px solid #000; padding-bottom: 10px; margin-bottom: 18px; }
+                            .logo { width: 85px; height: auto; margin-right: 20px; }
                             .header-text { text-align: center; flex: 1; }
-                            .header-text h2 { margin: 0; font-size: 18pt; font-family: Arial, sans-serif; }
-                            .header-text p { margin: 3px 0; font-size: 11pt; font-family: Arial, sans-serif; }
+                            .header-text h2 { margin: 0; font-size: 15pt; font-family: Arial, sans-serif; font-weight: bold; letter-spacing: 0.5px; }
+                            .header-text p { margin: 2px 0; font-size: 9.5pt; font-family: Arial, sans-serif; }
+                            .meta-table { width: 100%; margin-bottom: 12px; font-size: 10.5pt; border-collapse: collapse; }
+                            .meta-table td { padding: 2px 0; vertical-align: top; }
                             .content { text-align: justify; }
-                            ol { margin-top: 5px; margin-bottom: 15px; padding-left: 20px; }
-                            .highlight-box { background: #fef2f2; border: 1px solid #f87171; padding: 10px 15px; margin: 15px 0; border-radius: 6px; }
+                            ol, ul { margin-top: 4px; margin-bottom: 10px; padding-left: 22px; }
+                            li { margin-bottom: 3px; }
+                            .highlight-box { background: #fef2f2; border-left: 4px solid #ef4444; border-top: 1px solid #fee2e2; border-right: 1px solid #fee2e2; border-bottom: 1px solid #fee2e2; padding: 8px 12px; margin: 12px 0; border-radius: 4px; font-size: 10.5pt; }
+                            .legal-box { background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #3b82f6; padding: 8px 12px; margin: 12px 0; border-radius: 4px; font-size: 9pt; }
+                            .legal-box h4 { margin: 0 0 4px 0; font-size: 9.5pt; font-family: Arial, sans-serif; color: #1e3a8a; text-transform: uppercase; }
+                            .rincian-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10.5pt; }
+                            .rincian-table th, .rincian-table td { border: 1px solid #cbd5e1; padding: 6px 10px; }
+                            .rincian-table th { background: #f1f5f9; text-align: left; }
+                            .sign-container { margin-top: 25px; page-break-inside: avoid; }
                             @media print {
                                 body { padding: 0; }
-                                @page { margin: 2cm; }
+                                .no-print { display: none; }
                             }
                         </style>
                     </head>
@@ -252,75 +258,116 @@
                             <img src="https://i.ibb.co.com/WvTwLMn5/image-1.png" alt="Logo" class="logo" onload="window.print();" />
                             <div class="header-text">
                                 <h2>KOPERASI KARYAWAN ADARO KARYA MANDIRI</h2>
-                                <p>Badan Hukum Nomor : 2128/BH/IX Tanggal 31 Juli 1995</p>
+                                <p><strong>Badan Hukum Nomor : 2128/BH/IX Tanggal 31 Juli 1995</strong></p>
                                 <p>Office : Jl. Jend. A. Yani Komp. Swadharma Jalur II Blok Mawar RT IV</p>
-                                <p>Kel. Mabuun Kec. Murung Pudak Kab. Tabalong Prov. Kalimantan Selatan</p>
-                                <p>Kode Pos 71571 Telp/Fax : 0526 – 2023593 email : kopkar.adaro@gmail.com</p>
+                                <p>Kel. Mabuun, Kec. Murung Pudak, Kab. Tabalong, Prov. Kalimantan Selatan – 71571</p>
+                                <p>Telp/Fax : 0526 – 2023593 | Email : kopkar.adaro@gmail.com | Hotline: 0821-5238-6718</p>
                             </div>
                         </div>
+
+                        <table class="meta-table">
+                            <tr>
+                                <td style="width: 15%;"><strong>Nomor</strong></td>
+                                <td style="width: 50%;">: ${spNumber}</td>
+                                <td style="width: 35%; text-align: right;">Tanjung, ${now.getDate()} ${currentMonthName} ${currentYear}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sifat</strong></td>
+                                <td>: Rahasia & Penting</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Perihal</strong></td>
+                                <td>: <strong>PEMBERITAHUAN RESMI & SURAT PERINGATAN (${spCode})</strong></td>
+                                <td></td>
+                            </tr>
+                        </table>
+
                         <div class="content">
-                            <p>Kepada Yth Bapak/Ibu <strong>${member.nama}</strong><br>
-                            NRP: ${member.nik} | Site: ${member.site}</p>
+                            <p style="margin-top: 8px;">Kepada Yth.<br>
+                            Bapak/Ibu <strong>${member.nama}</strong><br>
+                            NRP: <strong>${member.nik}</strong> | Unit / Site: <strong>${member.site}</strong><br>
+                            Di Tempat</p>
                             
-                            <p>Berdasarkan laporan payroll koperasi, pendebetan rekening gaji Anda untuk bulan <strong>${currentMonthName} ${currentYear}</strong> mengalami kendala / gagal bayar karena saldo tidak mencukupi.</p>
+                            <p>Dengan hormat,</p>
+                            <p>Sehubungan dengan hasil rekonsiliasi pemotongan payroll gaji periode bulan <strong>${currentMonthName} ${currentYear}</strong> dan pengawasan kredit sistem SIPEKAT, kami menyampaikan bahwa pendebetan angsuran kewajiban pinjaman Bapak/Ibu mengalami kendala / gagal bayar berturut-turut.</p>
                             
+                            <!-- KOTAK DASAR HUKUM DAN ATURAN PEMERINTAH -->
+                            <div class="legal-box">
+                                <h4><i class="fa-solid fa-gavel"></i> DASAR HUKUM & KETENTUAN PERUNDANG-UNDANGAN YANG BERLAKU:</h4>
+                                <ol style="margin: 0; padding-left: 18px;">
+                                    <li><strong>UU No. 25 Tahun 1992 tentang Perkoperasian (Pasal 19 & Pasal 30):</strong> Anggota berkewajiban menaati AD/ART dan melunasi kewajiban pinjaman. Pengurus berwenang penuh mengamankan dan menagih hak kekayaan aset koperasi.</li>
+                                    <li><strong>Permenkop UKM No. 8 Tahun 2023 tentang Tata Kelola Usaha Simpan Pinjam:</strong> Kewajiban pengendalian Kualitas Aktiva Produktif (KAP), penanganan debitur bermasalah (Kolektibilitas Kurang Lancar & Macet), serta pembentukan cadangan risiko PPAP.</li>
+                                    <li><strong>PP No. 36 Tahun 2021 tentang Pengupahan jo. UU Ketenagakerjaan:</strong> Pemotongan upah pekerja untuk koperasi sah berdasarkan Surat Kuasa Potong Gaji tertulis. Gagal debet payroll tidak menghapus kewajiban perdata pekerja.</li>
+                                    <li><strong>Pasal 1131 & Pasal 1425 s.d. 1435 KUHPerdata:</strong> Seluruh kebendaan debitur menjadi jaminan perikatan hutang, dan Koperasi berhak secara hukum melakukan perjumpaan hutang (offset) terhadap saldo Simpanan Sukarela debitur.</li>
+                                </ol>
+                            </div>
+
                             <div class="highlight-box">
-                                <p style="margin: 0;"><strong>PEMBERITAHUAN TUNGGAKAN PEMBAYARAN:</strong><br>
-                                Berdasarkan catatan sistem pengawasan kredit kami, Anda saat ini tercatat <strong>menunggak pembayaran selama ${member.bulanMenunggak > 0 ? member.bulanMenunggak + ' bulan' : '1 bulan'} dari bulan berjalan</strong> (dengan frekuensi kegagalan bayar sebanyak <strong>${member.lateFreq} kali</strong>). Penumpukan tunggakan ini menjadi perhatian serius Pengurus Koperasi karena menyebabkan beban tagihan tertunda (pendingan) semakin membengkak.</p>
+                                <strong>STATUS TUNGGAKAN & KLASTER RISIKO:</strong><br>
+                                Berdasarkan evaluasi sistem, Anda tercatat <strong>menunggak selama ${member.bulanMenunggak > 0 ? member.bulanMenunggak + ' Bulan Tagihan' : '1 Bulan Berjalan'}</strong> dengan frekuensi kegagalan bayar sebanyak <strong>${member.lateFreq} kali</strong>. Total tagihan tertunda diklasifikasikan ke dalam <strong>${member.exposureTier.name}</strong> dengan prioritas penanganan <strong>${member.actionPriority.code} (${member.actionPriority.name})</strong>.
                             </div>
                             
-                            <p>Berikut rincian tagihan dan kewajiban Anda saat ini:</p>
+                            <table class="rincian-table">
+                                <tr>
+                                    <th style="width: 50%;">Rincian Kewajiban Anggota</th>
+                                    <th style="width: 50%;">Nilai Tagihan</th>
+                                </tr>
+                                <tr>
+                                    <td>Simpanan Wajib & Sukarela Bulanan</td>
+                                    <td>Rp 100.000</td>
+                                </tr>
+                                <tr>
+                                    <td>Angsuran Pokok Pinjaman / Bulan</td>
+                                    <td>Rp ${(member.targetPotongan || 0).toLocaleString('id-ID')}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>TOTAL TAGIHAN TERTUNDA (PENDING)</strong></td>
+                                    <td><strong style="color: #b91c1c; font-size: 12pt;">Rp ${member.sisaPending.toLocaleString('id-ID')}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Sisa Pokok Pinjaman Keseluruhan</td>
+                                    <td>Rp ${member.sisaOutstanding.toLocaleString('id-ID')}</td>
+                                </tr>
+                            </table>
+                            
+                            <p><strong>PETUNJUK PENYELESAIAN:</strong><br>
+                            Bapak/Ibu wajib menyelesaikan pelunasan tagihan tertunda tersebut paling lambat tanggal <strong>${lastDay} ${currentMonthName} ${currentYear}</strong> melalui transfer manual ke:</p>
                             <ol>
-                                <li>Simpanan Wajib: Rp 100.000</li>
-                                <li>Simpanan Sukarela: Rp 0</li>
-                                <li>Angsuran Normal Bulanan: Rp ${(member.targetPotongan || 0).toLocaleString('id-ID')} / bulan</li>
-                                <li>Status Tunggakan: <strong>${member.bulanMenunggak > 0 ? member.bulanMenunggak + ' Bulan Tagihan' : '1 Bulan Berjalan'}</strong></li>
-                                <li>Total Tagihan Tertunggak (Pendingan): <strong style="color: #b91c1c; font-size: 13pt;">Rp ${member.sisaPending.toLocaleString('id-ID')}</strong></li>
-                                <li>Sisa Pokok Hutang Keseluruhan: Rp ${member.sisaOutstanding.toLocaleString('id-ID')}</li>
+                                <li>Rekening Tujuan: <strong>Bank Mandiri No. 0310098896775</strong> a.n. <strong>Karyawan Adaro Karya</strong>.</li>
+                                <li>Konfirmasi Bukti Transfer via WhatsApp Admin Koperasi: <strong>0821-5238-6718</strong>.</li>
+                                <li>Atau mengajukan surat permohonan tertulis pemotongan dari saldo <em>Simpanan Sukarela</em> jika mencukupi.</li>
                             </ol>
                             
-                            <p>Anda wajib menyelesaikan pembayaran tunggakan tersebut paling lambat tanggal <strong>${lastDay} ${currentMonthName} ${currentYear}</strong>.</p>
-                            
-                            <p>Berikut tata cara penyelesaian kewajiban Anda:</p>
+                            <p><strong>KONSEKUENSI APABILA TIDAK DISELESAIKAN:</strong></p>
                             <ol>
-                                <li>Transfer tagihan Anda ke Bank Mandiri No. Rekening <strong>0310098896775</strong> Atas Nama <strong>Karyawan Adaro Karya</strong>.</li>
-                                <li>Kirim bukti transfer ke WhatsApp admin Koperasi di nomor <strong>082152386718</strong>.</li>
-                                <li>Admin akan memverifikasi dan memperbarui status tagihan Anda menjadi lunas.</li>
+                                <li>Pembekuan hak pinjaman dan seluruh fasilitas keanggotaan koperasi.</li>
+                                <li>Pemanggilan mediasi formal bersama Pengurus Koperasi dan Departemen Human Resources (HRD) Site.</li>
+                                <li>Pemotongan langsung hak kompensasi / uang pesangon saat terjadi pengakhiran hubungan kerja (PHK/Resign) sesuai klausul kuasa potong gaji.</li>
                             </ol>
                             
-                            <p>Keuntungan menyelesaikan tagihan tepat waktu:<br>
-                            Seluruh akses layanan anggota Anda di koperasi akan segera kami buka kembali setelah Anda menyelesaikan kewajiban pembayaran.</p>
+                            <p>Demikian surat peringatan resmi ini kami sampaikan untuk menjadi perhatian sungguh-sungguh dan segera ditindaklanjuti dengan itikad baik.</p>
                             
-                            <p>Konsekuensi jika gagal bayar melewati batas waktu:</p>
-                            <ol>
-                                <li>Pengenaan denda administrasi 1.5 persen per bulan dari pokok tunggakan.</li>
-                                <li>Pemblokiran seluruh fasilitas pinjaman dan layanan koperasi.</li>
-                                <li>Pemanggilan pertemuan formal oleh Pengurus Koperasi untuk klarifikasi.</li>
-                                <li>Eskalasi resmi ke HR dan Atasan. Perusahaan dapat memberikan tindakan disiplin sesuai ketentuan yang berlaku jika masalah pinjaman ini berlarut.</li>
-                            </ol>
-                            
-                            <p>Segera hubungi kami melalui nomor WhatsApp di atas untuk konfirmasi pembayaran atau diskusi lebih lanjut. Terima kasih atas kerja sama Anda.</p>
-                            
-                            <div style="margin-top: 40px; position: relative; text-align: center;">
-                                <p style="margin-bottom: 30px;"><strong>Pengurus Koperasi Karyawan Adaro Karya Mandiri</strong></p>
+                            <div class="sign-container">
+                                <p style="text-align: center; margin-bottom: 15px;"><strong>Pengurus Koperasi Karyawan Adaro Karya Mandiri</strong></p>
                                 
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 2; margin-top: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative;">
                                     
                                     <div style="text-align: center; width: 45%; position: relative;">
                                         <!-- Stempel diposisikan mutlak di atas area Ketua -->
-                                        <img src="https://i.ibb.co.com/XrrjYMMQ/Green-and-Gold-Simple-Mosque-Logo-3.png" alt="Stempel" style="position: absolute; left: 50%; top: 55%; transform: translate(-25%, -50%); width: 165px; opacity: 0.85; z-index: -1;" />
+                                        <img src="https://i.ibb.co.com/XrrjYMMQ/Green-and-Gold-Simple-Mosque-Logo-3.png" alt="Stempel" style="position: absolute; left: 50%; top: 55%; transform: translate(-25%, -50%); width: 150px; opacity: 0.85; z-index: -1;" />
                                         
                                         <p style="margin: 0; position: relative; z-index: 2;">Ketua,</p>
-                                        <img src="https://i.ibb.co.com/JW97Zcmh/Green-and-Gold-Simple-Mosque-Logo-1.png" alt="Tanda Tangan Ketua" style="height: 220px; margin: -20px auto -20px; display: block; position: relative; z-index: 2; right: 25px;" />
-                                        <p style="margin: 0; font-weight: bold; text-decoration: underline; position: relative; z-index: 2; font-size: 14pt;">Ageng Prasongko</p>
-                                        <p style="margin: 0; position: relative; z-index: 2; font-size: 13pt;">N.A: 41087</p>
+                                        <img src="https://i.ibb.co.com/JW97Zcmh/Green-and-Gold-Simple-Mosque-Logo-1.png" alt="Tanda Tangan Ketua" style="height: 180px; margin: -20px auto -20px; display: block; position: relative; z-index: 2; right: 25px;" />
+                                        <p style="margin: 0; font-weight: bold; text-decoration: underline; position: relative; z-index: 2; font-size: 12pt;">Ageng Prasongko</p>
+                                        <p style="margin: 0; position: relative; z-index: 2; font-size: 11pt;">N.A: 41087</p>
                                     </div>
 
                                     <div style="text-align: center; width: 45%; position: relative; z-index: 2;">
                                         <p style="margin: 0;">Sekretaris,</p>
-                                        <img src="https://i.ibb.co.com/HTmM4X4m/Green-and-Gold-Simple-Mosque-Logo.png" alt="Tanda Tangan Sekretaris" style="height: 220px; margin: -20px auto -20px; display: block;" />
-                                        <p style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 14pt;">Alhamdi Rasyid</p>
-                                        <p style="margin: 0; font-size: 13pt;">N.A: 41554</p>
+                                        <img src="https://i.ibb.co.com/HTmM4X4m/Green-and-Gold-Simple-Mosque-Logo.png" alt="Tanda Tangan Sekretaris" style="height: 180px; margin: -20px auto -20px; display: block;" />
+                                        <p style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 12pt;">Alhamdi Rasyid</p>
+                                        <p style="margin: 0; font-size: 11pt;">N.A: 41554</p>
                                     </div>
                                 </div>
                             </div>
