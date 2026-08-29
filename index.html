@@ -185,6 +185,7 @@
                             .header-text p { margin: 3px 0; font-size: 11pt; font-family: Arial, sans-serif; }
                             .content { text-align: justify; }
                             ol { margin-top: 5px; margin-bottom: 15px; padding-left: 20px; }
+                            .highlight-box { background: #fef2f2; border: 1px solid #f87171; padding: 10px 15px; margin: 15px 0; border-radius: 6px; }
                             @media print {
                                 body { padding: 0; }
                                 @page { margin: 2cm; }
@@ -206,25 +207,29 @@
                             <p>Kepada Yth Bapak/Ibu <strong>${member.nama}</strong><br>
                             NRP: ${member.nik} | Site: ${member.site}</p>
                             
-                            <p>Berdasarkan laporan payroll koperasi, pendebetan rekening Anda untuk bulan ${currentMonthName} ${currentYear} gagal karena saldo tidak mencukupi.</p>
+                            <p>Berdasarkan laporan payroll koperasi, pendebetan rekening gaji Anda untuk bulan <strong>${currentMonthName} ${currentYear}</strong> mengalami kendala / gagal bayar karena saldo tidak mencukupi.</p>
                             
-                            <p>Sebagai informasi tambahan, berdasarkan catatan historis kami, Anda telah mengalami <strong>kegagalan bayar (menunggak) sebanyak ${member.lateFreq} kali</strong>. Frekuensi kegagalan bayar ini menjadi perhatian serius kami karena menyebabkan penumpukan tagihan (pendingan) dan membuat total hutang Anda semakin besar.</p>
+                            <div class="highlight-box">
+                                <p style="margin: 0;"><strong>PEMBERITAHUAN TUNGGAKAN PEMBAYARAN:</strong><br>
+                                Berdasarkan catatan sistem pengawasan kredit kami, Anda saat ini tercatat <strong>menunggak pembayaran selama ${member.bulanMenunggak > 0 ? member.bulanMenunggak + ' bulan' : '1 bulan'} dari bulan berjalan</strong> (dengan frekuensi kegagalan bayar sebanyak <strong>${member.lateFreq} kali</strong>). Penumpukan tunggakan ini menjadi perhatian serius Pengurus Koperasi karena menyebabkan beban tagihan tertunda (pendingan) semakin membengkak.</p>
+                            </div>
                             
-                            <p>Berikut rincian tagihan Anda saat ini:</p>
+                            <p>Berikut rincian tagihan dan kewajiban Anda saat ini:</p>
                             <ol>
                                 <li>Simpanan Wajib: Rp 100.000</li>
                                 <li>Simpanan Sukarela: Rp 0</li>
-                                <li>Tagihan Pokok: Rp ${member.sisaOutstanding.toLocaleString('id-ID')}</li>
-                                <li>Denda Administrasi: Rp 0</li>
-                                <li>Total Pendingan: Rp ${member.sisaPending.toLocaleString('id-ID')}</li>
+                                <li>Angsuran Normal Bulanan: Rp ${(member.targetPotongan || 0).toLocaleString('id-ID')} / bulan</li>
+                                <li>Status Tunggakan: <strong>${member.bulanMenunggak > 0 ? member.bulanMenunggak + ' Bulan Tagihan' : '1 Bulan Berjalan'}</strong></li>
+                                <li>Total Tagihan Tertunggak (Pendingan): <strong style="color: #b91c1c; font-size: 13pt;">Rp ${member.sisaPending.toLocaleString('id-ID')}</strong></li>
+                                <li>Sisa Pokok Hutang Keseluruhan: Rp ${member.sisaOutstanding.toLocaleString('id-ID')}</li>
                             </ol>
                             
-                            <p>Anda wajib melakukan pembayaran paling lambat tanggal <strong>${lastDay} ${currentMonthName} ${currentYear}</strong>.</p>
+                            <p>Anda wajib menyelesaikan pembayaran tunggakan tersebut paling lambat tanggal <strong>${lastDay} ${currentMonthName} ${currentYear}</strong>.</p>
                             
-                            <p>Berikut cara penyelesaian kewajiban Anda:</p>
+                            <p>Berikut tata cara penyelesaian kewajiban Anda:</p>
                             <ol>
-                                <li>Transfer tagihan Anda ke Bank Mandiri No. Rekening 0310098896775 Atas Nama Karyawan Adaro Karya.</li>
-                                <li>Kirim bukti transfer ke WhatsApp admin Koperasi di nomor 082152386718.</li>
+                                <li>Transfer tagihan Anda ke Bank Mandiri No. Rekening <strong>0310098896775</strong> Atas Nama <strong>Karyawan Adaro Karya</strong>.</li>
+                                <li>Kirim bukti transfer ke WhatsApp admin Koperasi di nomor <strong>082152386718</strong>.</li>
                                 <li>Admin akan memverifikasi dan memperbarui status tagihan Anda menjadi lunas.</li>
                             </ol>
                             
@@ -234,9 +239,9 @@
                             <p>Konsekuensi jika gagal bayar melewati batas waktu:</p>
                             <ol>
                                 <li>Pengenaan denda administrasi 1.5 persen per bulan dari pokok tunggakan.</li>
-                                <li>Pemblokiran seluruh layanan koperasi.</li>
+                                <li>Pemblokiran seluruh fasilitas pinjaman dan layanan koperasi.</li>
                                 <li>Pemanggilan pertemuan formal oleh Pengurus Koperasi untuk klarifikasi.</li>
-                                <li>Eskalasi resmi ke HR dan Atasan. Perusahaan dapat memberikan tindakan disiplin sesuai Pasal 58 Ayat 1 poin 21 jika masalah pinjaman ini berlarut.</li>
+                                <li>Eskalasi resmi ke HR dan Atasan. Perusahaan dapat memberikan tindakan disiplin sesuai ketentuan yang berlaku jika masalah pinjaman ini berlarut.</li>
                             </ol>
                             
                             <p>Segera hubungi kami melalui nomor WhatsApp di atas untuk konfirmasi pembayaran atau diskusi lebih lanjut. Terima kasih atas kerja sama Anda.</p>
@@ -275,10 +280,23 @@
 
             const exportToCSV = (data, filename) => {
                 if (data.length === 0) return;
-                const headers = ["NRP", "Nama", "Site", "Target Potongan", "Berhasil Debet", "Sisa Outstanding", "Tunggakan (Pending)", "DPD", "Keterangan"];
+                const headers = ["NRP", "Nama", "Site", "Lama Tunggakan (Bulan)", "Status Tunggakan", "Target Potongan", "Berhasil Debet", "Sisa Outstanding", "Tunggakan (Pending)", "DPD", "Tingkat Risiko", "Keterangan"];
                 const csvRows = [headers.join(',')];
                 data.forEach(row => {
-                    const values = [ `"${row.nik || ''}"`, `"${row.nama || ''}"`, `"${row.site || ''}"`, row.targetPotongan || 0, row.berhasilDebet || 0, row.sisaOutstanding || 0, row.sisaPending || 0, row.dpd || 0, `"${row.latestReport?.keterangan || ''}"` ];
+                    const values = [ 
+                        `"${row.nik || ''}"`, 
+                        `"${row.nama || ''}"`, 
+                        `"${row.site || ''}"`, 
+                        `"${row.bulanMenunggak || 0} Bulan"`,
+                        `"${row.tunggakanBadge?.text || ''}"`,
+                        row.targetPotongan || 0, 
+                        row.berhasilDebet || 0, 
+                        row.sisaOutstanding || 0, 
+                        row.sisaPending || 0, 
+                        row.dpd || 0, 
+                        `"${row.riskLevel?.id || ''}"`,
+                        `"${(row.latestReport?.keterangan || '').replace(/"/g, '""')}"` 
+                    ];
                     csvRows.push(values.join(','));
                 });
                 const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
@@ -402,12 +420,73 @@
                         }
                     }
 
+                    // Menghitung frekuensi seluruh kegagalan bayar dalam riwayat
                     const lateFreq = member.history.filter(h => {
                         const pending = Number(h?.sisa_pending) || 0;
                         const target = Number(h?.total_potongan) || 0;
                         const debet = Number(h?.berhasil_debet) || 0;
                         return pending > 0 || (target > 0 && debet < target);
                     }).length;
+
+                    // 1. Hitung streak bulan menunggak berturut-turut hingga periode berjalan
+                    let streakMenunggak = 0;
+                    for (let i = member.history.length - 1; i >= 0; i--) {
+                        const h = member.history[i];
+                        const p = Number(h?.sisa_pending) || 0;
+                        const t = Number(h?.total_potongan) || 0;
+                        const d = Number(h?.berhasil_debet) || 0;
+                        if (p > 0 || (t > 0 && d < t)) {
+                            streakMenunggak++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // 2. Hitung estimasi rasio bulan menunggak dari nominal akumulasi pending vs target angsuran bulanan
+                    let bulanMenunggak = 0;
+                    if (sisaPending > 0) {
+                        if (targetPotongan > 0) {
+                            const rasio = sisaPending / targetPotongan;
+                            bulanMenunggak = Math.max(1, Math.round(rasio * 10) / 10);
+                        } else if (streakMenunggak > 0) {
+                            bulanMenunggak = streakMenunggak;
+                        } else {
+                            bulanMenunggak = 1;
+                        }
+                    }
+
+                    // 3. Tentukan badge dan status penegasan tunggakan bulan berjalan
+                    let tunggakanBadge = {
+                        text: "Lancar (0 Bln)",
+                        shortText: "0 Bln",
+                        style: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+                        severity: "lancar"
+                    };
+
+                    if (sisaPending > 0) {
+                        if (bulanMenunggak >= 3 || streakMenunggak >= 3 || dpd > 60) {
+                            tunggakanBadge = {
+                                text: `Nunggak ${bulanMenunggak} Bln (Kronis)`,
+                                shortText: `${bulanMenunggak} Bln`,
+                                style: "bg-rose-950/90 text-rose-300 border-rose-500/60 font-extrabold shadow-sm shadow-rose-900/50 animate-pulse",
+                                severity: "critical"
+                            };
+                        } else if (bulanMenunggak >= 2 || streakMenunggak >= 2 || dpd > 30) {
+                            tunggakanBadge = {
+                                text: `Nunggak ${bulanMenunggak} Bulan`,
+                                shortText: `${bulanMenunggak} Bln`,
+                                style: "bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold",
+                                severity: "danger"
+                            };
+                        } else {
+                            tunggakanBadge = {
+                                text: `Nunggak ${bulanMenunggak} Bln (Bulan Berjalan)`,
+                                shortText: `${bulanMenunggak} Bln`,
+                                style: "bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold",
+                                severity: "warning"
+                            };
+                        }
+                    }
 
                     let warnings = [];
                     if (previous) {
@@ -441,20 +520,34 @@
 
                     let riskLevel = RISK_LEVELS.GREEN;
                     
-                    // Logika Penentuan Risiko
+                    // Logika Penentuan Risiko Terintegrasi dengan Lama Tunggakan
                     if (paymentBadgeInfo && paymentBadgeInfo.text.includes("Lunas")) {
                         // Jika sudah dilunasi, turunkan risiko. Tapi jika Habit telatnya tinggi, jadikan YELLOW
                         riskLevel = (lateFreq >= 3 || dpd > 14) ? RISK_LEVELS.YELLOW : RISK_LEVELS.GREEN;
-                    } else if (dpd > 60 || statusKet.includes('gagal total') || lateFreq >= 4 || statusKet.includes('macet') || textAnalysis.severity === 2) {
-                                        riskLevel = RISK_LEVELS.CRITICAL; // Jika Kasus Lama (Severity 2), paksa jadi Kritis
-                    } else if (dpd > 30 || lateFreq >= 2 || sisaPending >= (targetPotongan * 2) || textAnalysis.severity === 1) {
-                        riskLevel = RISK_LEVELS.RED;
+                    } else if (dpd > 60 || statusKet.includes('gagal total') || lateFreq >= 4 || statusKet.includes('macet') || textAnalysis.severity === 2 || bulanMenunggak >= 3 || streakMenunggak >= 3) {
+                        riskLevel = RISK_LEVELS.CRITICAL; // Kritis: Nunggak >= 3 bulan atau kasus berat
+                    } else if (dpd > 30 || lateFreq >= 2 || sisaPending >= (targetPotongan * 2) || bulanMenunggak >= 2 || textAnalysis.severity === 1) {
+                        riskLevel = RISK_LEVELS.RED; // Bermasalah: Nunggak >= 2 bulan
                     } else if (dpd > 0 || lateFreq === 1 || sisaPending > 0) {
-                        riskLevel = RISK_LEVELS.YELLOW;
+                        riskLevel = RISK_LEVELS.YELLOW; // Warning: Nunggak 1 bulan berjalan
                     }
 
                     return {
-                        ...member, latestReport: latest, sisaOutstanding, sisaPending, targetPotongan, berhasilDebet, dpd, lateFreq, warnings, riskLevel, textAnalysis, paymentBadgeInfo
+                        ...member, 
+                        latestReport: latest, 
+                        sisaOutstanding, 
+                        sisaPending, 
+                        targetPotongan, 
+                        berhasilDebet, 
+                        dpd, 
+                        lateFreq, 
+                        streakMenunggak, 
+                        bulanMenunggak, 
+                        tunggakanBadge, 
+                        warnings, 
+                        riskLevel, 
+                        textAnalysis, 
+                        paymentBadgeInfo
                     };
                 });
             };
@@ -518,6 +611,10 @@
                 return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
             }, [riskTrendData]);
 
+            const [searchTerm, setSearchTerm] = useState('');
+            const [statusFilter, setStatusFilter] = useState('ALL');
+            const [sortBy, setSortBy] = useState('RISK_DESC');
+
             useEffect(() => { fetchData(); }, []);
 
             const handleAjukanKasus = async (e) => {
@@ -546,6 +643,16 @@
             const totalBerhasilDebet = loans.reduce((s, l) => s + (l.berhasilDebet || 0), 0);
             const collectionRate = totalTargetPotongan > 0 ? (totalBerhasilDebet / totalTargetPotongan) * 100 : 0;
 
+            const totalPendingDebtors = loans.filter(l => l.sisaPending > 0).length;
+            const chronicDebtors = loans.filter(l => l.bulanMenunggak >= 3 || l.riskLevel.id === 'CRITICAL').length;
+            const moderateDebtors = loans.filter(l => (l.bulanMenunggak >= 2 && l.bulanMenunggak < 3) || l.riskLevel.id === 'RED').length;
+            const newDebtors = loans.filter(l => l.bulanMenunggak < 2 && l.sisaPending > 0).length;
+
+            const pendingLoansList = loans.filter(l => l.sisaPending > 0);
+            const avgArrearsMonths = pendingLoansList.length > 0 
+                ? (pendingLoansList.reduce((s, l) => s + (l.bulanMenunggak || 1), 0) / pendingLoansList.length).toFixed(1)
+                : "0";
+
             const siteRisk = {};
             loans.forEach(l => {
                 const siteName = l.site || 'Unknown';
@@ -556,11 +663,54 @@
             const topRiskSites = Object.entries(siteRisk).sort((a, b) => b[1].pending - a[1].pending).slice(0, 3);
 
             const analytics = {
-                green: loans.filter(l => l.riskLevel.id === 'GREEN').length, yellow: loans.filter(l => l.riskLevel.id === 'YELLOW').length,
-                red: loans.filter(l => l.riskLevel.id === 'RED').length, critical: loans.filter(l => l.riskLevel.id === 'CRITICAL').length,
-                totalPending: loans.reduce((s, l) => s + (l.sisaPending || 0), 0), totalOutstanding: loans.reduce((s, l) => s + (l.sisaOutstanding || 0), 0),
-                warningCount: loans.filter(l => l.warnings.length > 0).length, topRiskSites
+                green: loans.filter(l => l.riskLevel.id === 'GREEN').length, 
+                yellow: loans.filter(l => l.riskLevel.id === 'YELLOW').length,
+                red: loans.filter(l => l.riskLevel.id === 'RED').length, 
+                critical: loans.filter(l => l.riskLevel.id === 'CRITICAL').length,
+                totalPending: loans.reduce((s, l) => s + (l.sisaPending || 0), 0), 
+                totalOutstanding: loans.reduce((s, l) => s + (l.sisaOutstanding || 0), 0),
+                warningCount: loans.filter(l => l.warnings.length > 0).length, 
+                totalPendingDebtors,
+                chronicDebtors,
+                moderateDebtors,
+                newDebtors,
+                avgArrearsMonths,
+                collectionRate,
+                topRiskSites
             };
+
+            // Filter dan Pengurutan Data Debitur
+            const filteredLoans = loans.filter(loan => {
+                const term = searchTerm.toLowerCase().trim();
+                if (term) {
+                    const matchName = String(loan.nama || '').toLowerCase().includes(term);
+                    const matchNik = String(loan.nik || '').toLowerCase().includes(term);
+                    const matchSite = String(loan.site || '').toLowerCase().includes(term);
+                    const matchKet = String(loan.latestReport?.keterangan || '').toLowerCase().includes(term);
+                    if (!matchName && !matchNik && !matchSite && !matchKet) return false;
+                }
+
+                if (statusFilter === 'ALL') return true;
+                if (statusFilter === 'CRITICAL') return loan.riskLevel.id === 'CRITICAL';
+                if (statusFilter === 'RED') return loan.riskLevel.id === 'RED';
+                if (statusFilter === 'YELLOW') return loan.riskLevel.id === 'YELLOW';
+                if (statusFilter === 'GREEN') return loan.riskLevel.id === 'GREEN';
+                if (statusFilter === 'BERMASALAH') return loan.riskLevel.id === 'RED' || loan.riskLevel.id === 'CRITICAL';
+                if (statusFilter === 'NUNGGAK_KRONIS') return loan.bulanMenunggak >= 3;
+                if (statusFilter === 'NUNGGAK_BERJALAN') return loan.sisaPending > 0;
+                return true;
+            }).sort((a, b) => {
+                if (sortBy === 'PENDING_DESC') return b.sisaPending - a.sisaPending;
+                if (sortBy === 'MONTHS_DESC') return b.bulanMenunggak - a.bulanMenunggak;
+                if (sortBy === 'DPD_DESC') return b.dpd - a.dpd;
+                if (sortBy === 'NAME_ASC') return String(a.nama).localeCompare(String(b.nama));
+                
+                // Default: RISK_DESC
+                const score = (r) => r === 'CRITICAL' ? 4 : r === 'RED' ? 3 : r === 'YELLOW' ? 2 : 1;
+                if (score(b.riskLevel.id) !== score(a.riskLevel.id)) return score(b.riskLevel.id) - score(a.riskLevel.id);
+                if (b.bulanMenunggak !== a.bulanMenunggak) return b.bulanMenunggak - a.bulanMenunggak;
+                return b.dpd - a.dpd;
+            });
 
             if (loading) {
                 return (
@@ -609,7 +759,7 @@
                                         </select>
                                         <i className="fa-solid fa-chevron-down text-[8px] md:text-[10px] text-white/40 pointer-events-none hidden md:block"></i>
                                     </div>
-                                    <button onClick={fetchData} disabled={isRefreshing} className="p-2 md:p-3 rounded-xl glass hover:bg-white/10 transition-all text-white/70 hover:text-white shrink-0">
+                                    <button onClick={fetchData} disabled={isRefreshing} className="p-2 md:p-3 rounded-xl glass hover:bg-white/10 transition-all text-white/70 hover:text-white shrink-0" title="Muat Ulang Data">
                                         <i className={`fa-solid fa-arrows-rotate text-xs md:text-sm ${isRefreshing?'animate-spin text-purple-400':''}`}></i>
                                     </button>
                                 </div>
@@ -618,6 +768,9 @@
                                 {[['analytics','fa-chart-pie','Dashboard'], ['pemantauan','fa-users-viewfinder','Pemantauan'], ['penghapusan','fa-gavel','Penyelesaian']].map(([id,icon,label])=>(
                                     <button key={id} onClick={()=>setActiveTab(id)} className={`flex-1 md:flex-none px-2 md:px-4 py-2 md:py-2 rounded-lg text-[11px] md:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap ${activeTab===id?'tab-active':'text-white/60 hover:text-white/90 hover:bg-white/5'}`}>
                                         <i className={`fa-solid ${icon}`}></i> {label}
+                                        {id==='pemantauan' && analytics.totalPendingDebtors > 0 && (
+                                            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-rose-500 text-white font-extrabold">{analytics.totalPendingDebtors}</span>
+                                        )}
                                     </button>
                                 ))}
                             </div>
@@ -626,25 +779,28 @@
 
                     <main className="p-3 md:p-6 max-w-7xl mx-auto mt-2 w-full">
                         
-                        {}
+                        {/* TAB DASHBOARD ANALYTICS */}
                         {activeTab==='analytics' && (
                             <div className="fade-in space-y-4 md:space-y-6">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-lg md:text-2xl font-bold text-white">Risk Analytics</h2>
-                                    <button onClick={() => setGuideModal(true)} className="px-2.5 py-1 bg-purple-500/20 text-purple-300 text-[10px] md:text-xs font-bold rounded-lg border border-purple-500/30 flex items-center gap-1.5"><i className="fa-solid fa-circle-question"></i> Panduan</button>
+                                    <div>
+                                        <h2 className="text-lg md:text-2xl font-bold text-white">Risk & Arrears Analytics</h2>
+                                        <p className="text-xs text-white/50">Pemetaan tingkat risiko & status tunggakan debitur dari bulan berjalan</p>
+                                    </div>
+                                    <button onClick={() => setGuideModal(true)} className="px-2.5 py-1 bg-purple-500/20 text-purple-300 text-[10px] md:text-xs font-bold rounded-lg border border-purple-500/30 flex items-center gap-1.5 hover:bg-purple-500/30 transition-all"><i className="fa-solid fa-circle-question"></i> Panduan SIPEKAT</button>
                                 </div>
 
-                                {/* PERBAIKAN: Di mobile ditumpuk 1 kolom, di desktop 3 kolom */}
+                                {/* Risk Level Metric Cards */}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                                     {Object.values(RISK_LEVELS).filter(l => l.id !== 'GREEN').map((level) => {
                                         let count = level.id === 'YELLOW' ? analytics.yellow : level.id === 'RED' ? analytics.red : analytics.critical;
                                         let grad = level.id === 'YELLOW' ? 'gradient-risk-yellow' : level.id === 'RED' ? 'gradient-risk-red' : 'gradient-risk-critical';
                                         return (
-                                            <div key={level.id} onClick={() => setRiskModal({open: true, level: level.id})} className="glass-panel rounded-xl md:rounded-2xl p-4 md:p-5 card-hover relative overflow-hidden group cursor-pointer">
+                                            <div key={level.id} onClick={() => setRiskModal({open: true, level: level.id})} className="glass-panel rounded-xl md:rounded-2xl p-4 md:p-5 card-hover relative overflow-hidden group cursor-pointer border border-white/10">
                                                 <div className={`absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full blur-2xl transform translate-x-10 -translate-y-10 ${grad}`}></div>
                                                 <div className="flex justify-between items-start mb-3">
                                                     <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md border ${level.color}`}>{level.id}</span>
-                                                    <i className={`fa-solid ${level.icon} text-xl md:text-2xl opacity-40 group-hover:scale-110 transition-transform ${level.id==='RED'?'text-rose-500':''}`}></i>
+                                                    <i className={`fa-solid ${level.icon} text-xl md:text-2xl opacity-40 group-hover:scale-110 transition-transform ${level.id==='RED'?'text-rose-500':level.id==='CRITICAL'?'text-red-400':''}`}></i>
                                                 </div>
                                                 <div>
                                                     <div className="text-3xl font-black text-white tracking-tight">{count} <span className="text-xs font-normal text-white/40">Debitur</span></div>
@@ -655,13 +811,13 @@
                                     })}
                                 </div>
 
-                                {/* PERBAIKAN: Di mobile ditumpuk vertikal */}
+                                {/* Financial & Early Warning Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-4">
+                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-4 border border-rose-500/20">
                                         <div className="w-12 h-12 shrink-0 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg border border-rose-500/30"><i className="fa-solid fa-chart-line"></i></div>
-                                        <div className="min-w-0 flex-1"><div className="text-white/50 text-[10px] font-bold uppercase mb-1">Total Tunggakan</div><div className="text-lg md:text-xl font-bold text-rose-300 truncate">Rp {analytics.totalPending.toLocaleString('id-ID')}</div></div>
+                                        <div className="min-w-0 flex-1"><div className="text-white/50 text-[10px] font-bold uppercase mb-1">Total Tunggakan Pending</div><div className="text-lg md:text-xl font-bold text-rose-300 truncate">Rp {analytics.totalPending.toLocaleString('id-ID')}</div></div>
                                     </div>
-                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-4">
+                                    <div className="glass-panel rounded-xl p-4 flex items-center gap-4 border border-blue-500/20">
                                         <div className="w-12 h-12 shrink-0 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg border border-blue-500/30"><i className="fa-solid fa-vault"></i></div>
                                         <div className="min-w-0 flex-1"><div className="text-white/50 text-[10px] font-bold uppercase mb-1">Exposure Sisa Pokok</div><div className="text-lg md:text-xl font-bold text-white truncate">Rp {analytics.totalOutstanding.toLocaleString('id-ID')}</div></div>
                                     </div>
@@ -669,6 +825,54 @@
                                         <div className="absolute inset-0 bg-amber-500/5 animate-pulse rounded-xl"></div>
                                         <div className="w-12 h-12 shrink-0 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg z-10"><i className="fa-solid fa-bell"></i></div>
                                         <div className="z-10 min-w-0 flex-1"><div className="text-amber-200/70 text-[10px] font-bold uppercase mb-1">AI Early Warning</div><div className="text-lg md:text-xl font-bold text-amber-300">{analytics.warningCount} Anomali</div></div>
+                                    </div>
+                                </div>
+
+                                {/* CARD PENEGASAN TUNGGAKAN BULAN BERJALAN */}
+                                <div className="glass-panel rounded-2xl p-4 md:p-5 border border-rose-500/30 relative overflow-hidden bg-gradient-to-br from-slate-900/80 to-slate-950/80">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-base font-bold border border-rose-500/40 shrink-0">
+                                                <i className="fa-solid fa-calendar-xmark"></i>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm md:text-base font-black text-white flex items-center gap-2 flex-wrap">
+                                                    Status Penegasan Tunggakan dari Bulan Berjalan
+                                                    <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30 font-bold">{analytics.totalPendingDebtors} Debitur Menunggak</span>
+                                                </h3>
+                                                <p className="text-[11px] text-white/50">Rincian sebaran durasi keterlambatan angsuran anggota terhadap periode berjalan</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 text-xs shrink-0">
+                                            <span className="text-white/50">Rata-rata Lama Tunggakan:</span>
+                                            <span className="font-extrabold text-amber-300">{analytics.avgArrearsMonths} Bulan Tagihan</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 md:gap-3">
+                                        <div className="bg-rose-950/50 border border-rose-500/40 rounded-xl p-3">
+                                            <div className="text-rose-300/80 text-[10px] font-bold uppercase mb-1 flex items-center justify-between">
+                                                <span>Nunggak ≥ 3 Bulan</span>
+                                                <i className="fa-solid fa-triangle-exclamation text-rose-400 animate-pulse"></i>
+                                            </div>
+                                            <div className="text-2xl font-black text-rose-300">{analytics.chronicDebtors} <span className="text-xs font-normal text-white/40">Orang</span></div>
+                                            <div className="text-[10px] text-rose-400/90 font-semibold mt-1">🚨 Kritis (Segera Terbitkan SP)</div>
+                                        </div>
+                                        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3">
+                                            <div className="text-rose-200/80 text-[10px] font-bold uppercase mb-1">Nunggak 2 Bulan</div>
+                                            <div className="text-2xl font-black text-white">{analytics.moderateDebtors} <span className="text-xs font-normal text-white/40">Orang</span></div>
+                                            <div className="text-[10px] text-rose-300/80 mt-1">🔴 Bermasalah (Follow-up WA)</div>
+                                        </div>
+                                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+                                            <div className="text-amber-200/80 text-[10px] font-bold uppercase mb-1">Nunggak 1 Bulan</div>
+                                            <div className="text-2xl font-black text-white">{analytics.newDebtors} <span className="text-xs font-normal text-white/40">Orang</span></div>
+                                            <div className="text-[10px] text-amber-300/80 mt-1">🟡 Warning (Bulan Berjalan)</div>
+                                        </div>
+                                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+                                            <div className="text-emerald-200/80 text-[10px] font-bold uppercase mb-1">Lancar / Lunas</div>
+                                            <div className="text-2xl font-black text-emerald-400">{analytics.green} <span className="text-xs font-normal text-white/40">Orang</span></div>
+                                            <div className="text-[10px] text-emerald-400/80 mt-1">🟢 0 Bulan (Tanpa Tunggakan)</div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -680,7 +884,7 @@
                                                 <div key={site} className="bg-white/5 border border-white/10 rounded-xl p-3 flex justify-between items-center">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${idx===0 ? 'bg-rose-500/20 text-rose-400' : 'bg-white/10 text-white/50'}`}>{idx+1}</div>
-                                                        <div><div className="text-sm font-bold text-white/90">{site}</div><div className="text-[10px] text-white/40">{data.criticalRed} Kasus Berat</div></div>
+                                                        <div><div className="text-sm font-bold text-white/90">{site}</div><div className="text-[10px] text-white/40">{data.criticalRed} Kasus Berat • {data.count} Debitur</div></div>
                                                     </div>
                                                     <div className="text-right"><div className="text-sm font-bold text-rose-300">Rp {(data.pending/1000000).toFixed(1)}Jt</div></div>
                                                 </div>
@@ -690,7 +894,7 @@
 
                                     {riskTrendData && riskTrendData.length > 0 && (
                                         <div className="md:col-span-2 glass-panel rounded-xl p-4 md:p-6">
-                                            <h3 className="text-base font-bold text-white flex items-center gap-2 mb-4"><i className="fa-solid fa-chart-line text-emerald-400"></i> Tren Risiko</h3>
+                                            <h3 className="text-base font-bold text-white flex items-center gap-2 mb-4"><i className="fa-solid fa-chart-line text-emerald-400"></i> Tren Riwayat Risiko Per Periode</h3>
                                             <div className="h-[200px] w-full relative">
                                                 <canvas ref={chartRef}></canvas>
                                             </div>
@@ -700,21 +904,100 @@
                             </div>
                         )}
 
-                        {}
+                        {/* TAB PEMANTAUAN DEBITUR */}
                         {activeTab==='pemantauan' && (
-                            <div className="fade-in">
-                                <div className="mb-4"><h2 className="text-lg md:text-2xl font-bold text-white">Pemantauan Debitur</h2></div>
+                            <div className="fade-in space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h2 className="text-lg md:text-2xl font-bold text-white flex items-center gap-2">
+                                            Pemantauan Debitur & Tunggakan
+                                        </h2>
+                                        <p className="text-xs text-white/50">Daftar lengkap debitur dengan status lama tunggakan bulan berjalan</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => exportToCSV(filteredLoans, `Data_Debitur_SIPEKAT_${selectedPeriod}`)} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-900/30 transition-all">
+                                            <i className="fa-solid fa-file-excel"></i> <span>Export Excel/CSV ({filteredLoans.length})</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* SEARCH & FILTER CONTROL BAR */}
+                                <div className="glass-panel p-3 md:p-4 rounded-2xl space-y-3 border border-white/10">
+                                    <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
+                                        {/* Search Input */}
+                                        <div className="relative flex-1">
+                                            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs"></i>
+                                            <input 
+                                                type="text" 
+                                                value={searchTerm} 
+                                                onChange={e => setSearchTerm(e.target.value)} 
+                                                placeholder="Cari Nama Debitur / NRP / Site / Keterangan..." 
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs md:text-sm text-white placeholder-white/40 outline-none focus:border-purple-500 transition-all"
+                                            />
+                                            {searchTerm && (
+                                                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs">
+                                                    <i className="fa-solid fa-circle-xmark"></i>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Sort By Dropdown */}
+                                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-xs shrink-0">
+                                            <i className="fa-solid fa-arrow-down-short-wide text-purple-400"></i>
+                                            <span className="text-white/40">Urutkan:</span>
+                                            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="bg-transparent text-white font-bold outline-none cursor-pointer border-none">
+                                                <option value="RISK_DESC" className="bg-slate-900 text-white">Tingkat Risiko Tertinggi</option>
+                                                <option value="MONTHS_DESC" className="bg-slate-900 text-white">Lama Tunggakan Terlama</option>
+                                                <option value="PENDING_DESC" className="bg-slate-900 text-white">Nominal Pending Terbesar</option>
+                                                <option value="DPD_DESC" className="bg-slate-900 text-white">DPD (Hari Terlambat)</option>
+                                                <option value="NAME_ASC" className="bg-slate-900 text-white">Nama (A - Z)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Status Filter Chips */}
+                                    <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1 pt-1 text-xs">
+                                        {[
+                                            ['ALL', `Semua (${loans.length})`],
+                                            ['BERMASALAH', `🚨 Semua Bermasalah (${analytics.critical + analytics.red})`],
+                                            ['CRITICAL', `🚨 Kritis / Macet (${analytics.critical})`],
+                                            ['RED', `🔴 Bermasalah ≥2 Bln (${analytics.red})`],
+                                            ['YELLOW', `🟡 Warning 1 Bln (${analytics.yellow})`],
+                                            ['GREEN', `🟢 Lancar (${analytics.green})`],
+                                            ['NUNGGAK_KRONIS', `⏳ Nunggak ≥ 3 Bulan (${analytics.chronicDebtors})`],
+                                            ['NUNGGAK_BERJALAN', `⚠️ Ada Tunggakan (${analytics.totalPendingDebtors})`]
+                                        ].map(([key, label]) => (
+                                            <button 
+                                                key={key} 
+                                                onClick={() => setStatusFilter(key)} 
+                                                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${statusFilter === key ? 'bg-purple-600 text-white shadow-md shadow-purple-900/40 border border-purple-400/30' : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/5'}`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="text-xs text-white/50 flex justify-between items-center px-1">
+                                    <span>Menampilkan <strong className="text-white font-bold">{filteredLoans.length}</strong> dari {loans.length} debitur</span>
+                                    {statusFilter !== 'ALL' && <button onClick={() => setStatusFilter('ALL')} className="text-purple-400 hover:underline">Reset Filter</button>}
+                                </div>
                                 
                                 {/* Mobile View - Card Vertikal */}
                                 <div className="flex flex-col gap-3 md:hidden">
-                                    {loans.length === 0 && <div className="py-10 text-center text-white/30 glass-panel rounded-xl"><i className="fa-solid fa-box-open text-2xl mb-2 block"></i>Belum ada data.</div>}
-                                    {loans.map(loan => (
-                                        <div key={loan.id} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                                    {filteredLoans.length === 0 && (
+                                        <div className="py-12 text-center text-white/30 glass-panel rounded-2xl">
+                                            <i className="fa-solid fa-box-open text-3xl mb-2 block"></i>
+                                            Tidak ditemukan data debitur yang sesuai filter.
+                                        </div>
+                                    )}
+                                    {filteredLoans.map(loan => (
+                                        <div key={loan.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 relative overflow-hidden">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
                                                     <div className="font-bold text-white/90 text-sm flex items-center gap-1.5 flex-wrap">
                                                         {loan.nama}
-                                                        {loan.textAnalysis?.isLegacy && <i className="fa-solid fa-clock-rotate-left text-purple-400 text-xs" title="Kasus Lama"></i>}
+                                                        {loan.textAnalysis?.isLegacy && <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.5 rounded text-[8px] uppercase font-bold">Kasus Lama</span>}
                                                     </div>
                                                     {loan.paymentBadgeInfo && (
                                                         <div className={`mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border ${loan.paymentBadgeInfo.style}`}>
@@ -727,23 +1010,49 @@
                                                 </div>
                                                 <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase shrink-0 ${loan.riskLevel.color}`}>{loan.riskLevel.id}</span>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-2 mb-3 mt-3 text-xs">
+
+                                            {/* BANNER TUNGGAKAN BULAN BERJALAN (MOBILE HIGHLIGHT) */}
+                                            <div className={`p-2.5 rounded-xl border mb-3 flex items-center justify-between ${loan.sisaPending > 0 ? (loan.bulanMenunggak >= 3 ? 'bg-rose-950/70 border-rose-500/60 text-rose-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-300') : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'}`}>
+                                                <div>
+                                                    <div className="text-[9px] uppercase font-extrabold tracking-wider opacity-75">Tunggakan Bulan Berjalan</div>
+                                                    <div className="text-xs font-black flex items-center gap-1.5 mt-0.5">
+                                                        <i className={`fa-solid ${loan.sisaPending > 0 ? 'fa-triangle-exclamation' : 'fa-check-circle'}`}></i>
+                                                        <span>{loan.tunggakanBadge.text}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-[9px] uppercase opacity-75">Total Pending</div>
+                                                    <div className="text-xs font-black">Rp {loan.sisaPending.toLocaleString('id-ID')}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
                                                 <div className="bg-white/5 rounded-lg p-2">
-                                                    <div className="text-white/40 text-[9px] uppercase mb-0.5">Tunggakan</div>
-                                                    <div className={`font-bold ${loan.sisaPending > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Rp {loan.sisaPending.toLocaleString('id-ID')}</div>
+                                                    <div className="text-white/40 text-[9px] uppercase mb-0.5">Angsuran Normal</div>
+                                                    <div className="font-bold text-white">Rp {(loan.targetPotongan||0).toLocaleString('id-ID')}/bln</div>
                                                 </div>
                                                 <div className="bg-white/5 rounded-lg p-2">
-                                                    <div className="text-white/40 text-[9px] uppercase mb-0.5">DPD</div>
+                                                    <div className="text-white/40 text-[9px] uppercase mb-0.5">DPD / Telat</div>
                                                     <div className="font-bold text-white">{loan.dpd > 0 ? `${loan.dpd} Hari` : '-'}</div>
                                                 </div>
                                             </div>
+
                                             <div className="flex flex-col gap-2">
                                                 {loan.warnings.length > 0 && (
                                                     <div className="flex flex-wrap gap-1">
                                                         {loan.warnings.map((w,i)=><span key={i} className={`text-[9px] leading-tight font-medium px-1.5 py-0.5 rounded border ${w.includes('🔍 AI:') ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' : 'bg-amber-500/10 text-amber-300 border-amber-500/20'}`}>{w.includes('🔍 AI:') ? <span><i className="fa-solid fa-robot mr-1"></i>{w.replace('🔍 AI: ', '')}</span> : w}</span>)}
                                                     </div>
                                                 )}
-                                                <button onClick={()=>setDetailModal({open:true, member:loan})} className="w-full py-2 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 text-center"><i className="fa-solid fa-chart-gantt mr-1"></i> Buka Detail</button>
+                                                <div className="flex gap-2 mt-1">
+                                                    <button onClick={()=>setDetailModal({open:true, member:loan})} className="flex-1 py-2 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 text-center hover:bg-purple-500/30">
+                                                        <i className="fa-solid fa-chart-gantt mr-1"></i> Buka Detail
+                                                    </button>
+                                                    {loan.riskLevel.id === 'CRITICAL' && (
+                                                        <button onClick={() => printWarningLetter(loan)} className="px-3 py-2 rounded-lg text-xs font-bold bg-rose-600 text-white shadow hover:bg-rose-500">
+                                                            <i className="fa-solid fa-print"></i>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -754,43 +1063,91 @@
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
                                             <thead className="bg-white/5 border-b border-white/10 text-white/60">
-                                                <tr><th className="px-4 py-3">Debitur</th><th className="px-4 py-3">Keuangan</th><th className="px-4 py-3">Risk & DPD</th><th className="px-4 py-3">Warning Flags</th><th className="px-4 py-3"></th></tr>
+                                                <tr>
+                                                    <th className="px-4 py-3">Debitur & Site</th>
+                                                    <th className="px-4 py-3">Lama Tunggakan (Bulan Berjalan)</th>
+                                                    <th className="px-4 py-3">Realisasi Potongan</th>
+                                                    <th className="px-4 py-3">Sisa Pokok</th>
+                                                    <th className="px-4 py-3">Risk & DPD</th>
+                                                    <th className="px-4 py-3">Warning Flags</th>
+                                                    <th className="px-4 py-3 text-right">Aksi</th>
+                                                </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {loans.map(loan => (
-                                                    <tr key={loan.id} className="hover:bg-white/[0.04]">
-                                                        <td className="px-4 py-3">
-                                                            <div className="font-bold text-white flex items-center gap-2">
-                                                                {loan.nama} 
-                                                                {loan.textAnalysis?.isLegacy && <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.5 rounded text-[8px] uppercase font-bold">Kasus Lama</span>}
-                                                            </div>
-                                                            {loan.paymentBadgeInfo && (
-                                                                <div className={`mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border ${loan.paymentBadgeInfo.style}`}>
-                                                                    {loan.paymentBadgeInfo.text}
-                                                                </div>
-                                                            )}
-                                                            <div className="text-[11px] text-white/40 mt-1">{loan.nik} • {loan.site}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className={`font-bold ${loan.sisaPending > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Rp {loan.sisaPending.toLocaleString('id-ID')}</div>
-                                                            <div className="text-[10px] text-white/40 mt-1">Tgt: {loan.targetPotongan.toLocaleString('id-ID')} | Dbt: {loan.berhasilDebet.toLocaleString('id-ID')}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex flex-col gap-1 items-start">
-                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${loan.riskLevel.color}`}>{loan.riskLevel.id}</span>
-                                                                {loan.dpd > 0 && <span className="text-[11px] text-rose-300 font-semibold">{loan.dpd} Hari</span>}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex flex-col gap-1">
-                                                                {loan.warnings.map((w,i)=><span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border max-w-fit ${w.includes('🔍 AI:') ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' : 'bg-amber-500/10 text-amber-300 border-amber-500/20'}`}>{w}</span>)}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Detail</button>
+                                                {filteredLoans.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="7" className="text-center py-12 text-white/40">
+                                                            <i className="fa-solid fa-box-open text-2xl mb-2 block"></i>
+                                                            Tidak ada debitur yang cocok dengan kriteria pencarian / filter.
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                ) : (
+                                                    filteredLoans.map(loan => (
+                                                        <tr key={loan.id} className="hover:bg-white/[0.04] transition-colors">
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-white flex items-center gap-2">
+                                                                    {loan.nama} 
+                                                                    {loan.textAnalysis?.isLegacy && <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded text-[8px] uppercase font-bold">Kasus Lama</span>}
+                                                                </div>
+                                                                {loan.paymentBadgeInfo && (
+                                                                    <div className={`mt-1 inline-block px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border ${loan.paymentBadgeInfo.style}`}>
+                                                                        {loan.paymentBadgeInfo.text}
+                                                                    </div>
+                                                                )}
+                                                                <div className="text-[11px] text-white/40 mt-1">{loan.nik} • {loan.site}</div>
+                                                            </td>
+                                                            {/* KOLOM PENEGASAN LAMA TUNGGAKAN BULAN BERJALAN */}
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex flex-col gap-1 items-start">
+                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${loan.tunggakanBadge.style}`}>
+                                                                        {loan.tunggakanBadge.text}
+                                                                    </span>
+                                                                    <div className="font-bold text-rose-300 text-xs">
+                                                                        {loan.sisaPending > 0 ? `Rp ${loan.sisaPending.toLocaleString('id-ID')}` : 'Rp 0'}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-white/40">
+                                                                        Angsuran: Rp {(loan.targetPotongan||0).toLocaleString('id-ID')}/bln
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="text-xs text-white/80">Tgt: Rp {(loan.targetPotongan||0).toLocaleString('id-ID')}</div>
+                                                                <div className="text-xs font-bold text-emerald-400 mt-0.5">Dbt: Rp {(loan.berhasilDebet||0).toLocaleString('id-ID')}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-white/90">Rp {(loan.sisaOutstanding||0).toLocaleString('id-ID')}</div>
+                                                                <div className="text-[10px] text-white/40">Pinj: {((loan.totalPinjamanAwal||0)/1000000).toFixed(1)}Jt</div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex flex-col gap-1 items-start">
+                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${loan.riskLevel.color}`}>{loan.riskLevel.id}</span>
+                                                                    {loan.dpd > 0 ? <span className="text-[11px] text-rose-300 font-semibold">{loan.dpd} Hari</span> : <span className="text-[11px] text-emerald-400 font-semibold">Tepat Waktu</span>}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex flex-col gap-1 max-w-[200px]">
+                                                                    {loan.warnings.length > 0 ? (
+                                                                        loan.warnings.map((w,i)=><span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border truncate ${w.includes('🔍 AI:') ? 'bg-purple-500/10 text-purple-300 border-purple-500/20' : 'bg-amber-500/10 text-amber-300 border-amber-500/20'}`}>{w}</span>)
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-white/30 italic">-</span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <div className="flex items-center justify-end gap-1.5">
+                                                                    <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-all">
+                                                                        Detail
+                                                                    </button>
+                                                                    {loan.riskLevel.id === 'CRITICAL' && (
+                                                                        <button onClick={() => printWarningLetter(loan)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-rose-600 text-white shadow hover:bg-rose-500 transition-all" title="Cetak Surat Peringatan">
+                                                                            <i className="fa-solid fa-print"></i>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -830,74 +1187,163 @@
                                     
                                     <div className="px-4 py-3 border-b border-white/10 flex justify-between items-start bg-slate-900/50 sticky top-0 z-10">
                                         <div>
-                                            <h3 className="text-base font-bold text-white">{detailModal.member.nama}</h3>
-                                            <div className="text-[10px] text-white/50">{detailModal.member.nik} | Rp {detailModal.member.sisaOutstanding.toLocaleString('id-ID')}</div>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-base md:text-lg font-bold text-white">{detailModal.member.nama}</h3>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${detailModal.member.riskLevel.color}`}>{detailModal.member.riskLevel.id}</span>
+                                            </div>
+                                            <div className="text-xs text-white/50 mt-0.5">{detailModal.member.nik} | Site: {detailModal.member.site}</div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {detailModal.member.riskLevel.id === 'CRITICAL' && (
-                                                <button onClick={() => printWarningLetter(detailModal.member)} className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2">
-                                                    <i className="fa-solid fa-print"></i> <span className="hidden sm:inline">Surat Peringatan</span>
+                                            {(detailModal.member.riskLevel.id === 'CRITICAL' || detailModal.member.riskLevel.id === 'RED') && (
+                                                <button onClick={() => printWarningLetter(detailModal.member)} className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1.5 transition-all">
+                                                    <i className="fa-solid fa-print"></i> <span className="hidden sm:inline">Cetak Surat Peringatan</span>
                                                 </button>
                                             )}
-                                            <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60"><i className="fa-solid fa-xmark"></i></button>
+                                            <button onClick={()=>setDetailModal({open:false, member:null})} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"><i className="fa-solid fa-xmark"></i></button>
                                         </div>
                                     </div>
                                     
-                                    <div className="p-4 overflow-y-auto w-full">
+                                    <div className="p-4 md:p-6 overflow-y-auto w-full space-y-4">
                                         {/* BANNER AI KASUS LAMA */}
                                         {detailModal.member.textAnalysis?.isLegacy && (
-                                            <div className="mb-4 bg-purple-500/10 border border-purple-500/30 p-3 rounded-xl flex items-start gap-3 w-full">
-                                                <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5"><i className="fa-solid fa-clock-rotate-left"></i></div>
+                                            <div className="bg-purple-500/10 border border-purple-500/30 p-3.5 rounded-2xl flex items-start gap-3 w-full">
+                                                <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 mt-0.5"><i className="fa-solid fa-clock-rotate-left"></i></div>
                                                 <div className="min-w-0">
-                                                    <h4 className="text-purple-300 font-bold text-sm">Peringatan AI: Kasus Lama</h4>
-                                                    <p className="text-purple-200/70 text-[10px] md:text-xs mt-1">Sistem mendeteksi riwayat hutang ini berasal dari tahun sebelumnya berdasarkan catatan keterangan. Status risiko dipaksa menjadi Kritis.</p>
+                                                    <h4 className="text-purple-300 font-bold text-sm">Peringatan AI: Kasus Riwayat Lampau</h4>
+                                                    <p className="text-purple-200/70 text-xs mt-0.5">Sistem mendeteksi riwayat tagihan ini berasal dari tahun sebelumnya berdasarkan catatan payroll. Status risiko ditingkatkan menjadi Kritis untuk prioritas penyelesaian.</p>
                                                 </div>
                                             </div>
                                         )}
                                         
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4">
-                                            <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-white/40 text-[9px] uppercase mb-1">Risiko</div><div className="text-sm md:text-lg font-black text-rose-400">{detailModal.member.riskLevel.id}</div></div>
-                                            <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-white/40 text-[9px] uppercase mb-1">Telat (DPD)</div><div className="text-sm md:text-lg font-black text-white">{detailModal.member.dpd} Hr</div></div>
-                                            <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-white/40 text-[9px] uppercase mb-1">Freq Telat</div><div className="text-sm md:text-lg font-black text-white">{detailModal.member.lateFreq}x</div></div>
-                                            <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-white/40 text-[9px] uppercase mb-1">Max Pinjam</div><div className="text-sm md:text-lg font-black text-white/80">{(detailModal.member.totalPinjamanAwal/1000000).toFixed(1)}Jt</div></div>
+                                        {/* CARD STATUS TUNGGAKAN BULAN BERJALAN KOMPREHENSIF */}
+                                        <div className={`p-4 md:p-5 rounded-2xl border ${detailModal.member.sisaPending > 0 ? (detailModal.member.bulanMenunggak >= 3 ? 'bg-gradient-to-br from-rose-950/60 to-slate-900/90 border-rose-500/50' : 'bg-gradient-to-br from-rose-900/30 to-slate-900/90 border-rose-500/30') : 'bg-gradient-to-br from-emerald-950/30 to-slate-900/90 border-emerald-500/30'}`}>
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-white/10">
+                                                <div>
+                                                    <div className="text-[10px] uppercase font-bold text-white/50 tracking-wider">Status Tunggakan dari Bulan Berjalan</div>
+                                                    <div className="text-base md:text-lg font-black text-white flex items-center gap-2 mt-0.5">
+                                                        <i className={`fa-solid ${detailModal.member.sisaPending > 0 ? 'fa-triangle-exclamation text-rose-400' : 'fa-circle-check text-emerald-400'}`}></i>
+                                                        <span>{detailModal.member.tunggakanBadge.text}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="sm:text-right">
+                                                    <div className="text-[10px] uppercase text-white/50">Total Tagihan Tertunda (Pending)</div>
+                                                    <div className={`text-lg md:text-xl font-black ${detailModal.member.sisaPending > 0 ? 'text-rose-300' : 'text-emerald-400'}`}>
+                                                        Rp {detailModal.member.sisaPending.toLocaleString('id-ID')}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                                <div className="bg-black/30 p-2.5 rounded-xl border border-white/5">
+                                                    <div className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Lama Tunggakan</div>
+                                                    <div className="text-sm md:text-base font-black text-white">
+                                                        {detailModal.member.bulanMenunggak > 0 ? `${detailModal.member.bulanMenunggak} Bulan Tagihan` : '0 Bulan (Lancar)'}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-black/30 p-2.5 rounded-xl border border-white/5">
+                                                    <div className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Angsuran / Bulan</div>
+                                                    <div className="text-sm md:text-base font-black text-white">
+                                                        Rp {(detailModal.member.targetPotongan || 0).toLocaleString('id-ID')}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-black/30 p-2.5 rounded-xl border border-white/5">
+                                                    <div className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Sisa Pokok Hutang</div>
+                                                    <div className="text-sm md:text-base font-black text-white">
+                                                        Rp {detailModal.member.sisaOutstanding.toLocaleString('id-ID')}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-black/30 p-2.5 rounded-xl border border-white/5">
+                                                    <div className="text-white/40 text-[9px] uppercase font-semibold mb-0.5">Freq Gagal Bayar</div>
+                                                    <div className="text-sm md:text-base font-black text-white">
+                                                        {detailModal.member.lateFreq}x Tercatat
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Rekomendasi Tindakan Koperasi */}
+                                            <div className="mt-3 pt-3 border-t border-white/10 text-xs">
+                                                {detailModal.member.bulanMenunggak >= 3 || detailModal.member.riskLevel.id === 'CRITICAL' ? (
+                                                    <div className="flex items-center gap-2 text-rose-300 font-semibold bg-rose-950/50 p-2.5 rounded-xl border border-rose-500/30">
+                                                        <i className="fa-solid fa-gavel text-sm text-rose-400 shrink-0"></i>
+                                                        <span><strong>Rekomendasi Tindakan:</strong> Terbitkan Surat Peringatan (SP) resmi dan jadwalkan pemanggilan klarifikasi bersama Pengurus & HR.</span>
+                                                    </div>
+                                                ) : detailModal.member.bulanMenunggak >= 2 || detailModal.member.riskLevel.id === 'RED' ? (
+                                                    <div className="flex items-center gap-2 text-rose-200 font-semibold bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
+                                                        <i className="fa-brands fa-whatsapp text-sm text-emerald-400 shrink-0"></i>
+                                                        <span><strong>Rekomendasi Tindakan:</strong> Lakukan penagihan langsung melalui WhatsApp/Telepon untuk komitmen pelunasan bulan berjalan.</span>
+                                                    </div>
+                                                ) : detailModal.member.sisaPending > 0 ? (
+                                                    <div className="flex items-center gap-2 text-amber-200 font-semibold bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
+                                                        <i className="fa-solid fa-bell text-sm text-amber-400 shrink-0"></i>
+                                                        <span><strong>Rekomendasi Tindakan:</strong> Kirimkan notifikasi pengingat payroll sebelum tanggal cut-off periode berikutnya.</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-emerald-300 font-semibold bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
+                                                        <i className="fa-solid fa-shield-check text-sm text-emerald-400 shrink-0"></i>
+                                                        <span><strong>Status Anggota:</strong> Pembayaran tertib dan lancar tanpa tagihan tertunda pada bulan berjalan.</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        <div className="mb-4 bg-black/20 border border-white/10 p-3 rounded-xl w-full overflow-hidden">
-                                            <h4 className="font-bold text-white/70 mb-2 text-[10px] uppercase border-l-2 border-emerald-500 pl-2">Tren Tunggakan</h4>
+                                        <div className="bg-black/20 border border-white/10 p-4 rounded-2xl w-full overflow-hidden">
+                                            <h4 className="font-bold text-white/80 mb-3 text-xs uppercase border-l-2 border-emerald-500 pl-2">Grafik Tren Tunggakan & Sisa Pokok</h4>
                                             <MemberTrendChart history={detailModal.member.history} />
                                         </div>
 
-                                        <h4 className="font-bold text-white/70 mb-2 text-[10px] uppercase border-l-2 border-purple-500 pl-2">Timeline</h4>
-                                        
-                                        {/* Mobile Card Layout for Timeline */}
-                                        <div className="md:hidden flex flex-col gap-2 w-full">
-                                            {[...detailModal.member.history].reverse().map((h, i) => {
-                                                const p = Number(h?.sisa_pending) || 0; const t = Number(h?.total_potongan) || 0; const d = Number(h?.berhasil_debet) || 0;
-                                                return (
-                                                    <div key={i} className="bg-white/5 p-3 rounded-xl text-xs w-full">
-                                                        <div className="flex justify-between font-bold mb-2"><span>{formatBulan(h?.periode)}</span><span className={p>0?'text-rose-400':'text-emerald-400'}>Pending: Rp {p.toLocaleString('id-ID')}</span></div>
-                                                        <div className="flex justify-between text-[10px] text-white/60 mb-2"><span>Target: {t.toLocaleString()}</span><span>Debet: {d.toLocaleString()}</span></div>
-                                                        <div className="bg-black/20 p-2 rounded text-[10px] italic">{h?.keterangan || '-'}</div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                        
-                                        {/* Desktop Table Layout for Timeline */}
-                                        <div className="hidden md:block border border-white/10 rounded-xl overflow-x-auto w-full">
-                                            <table className="w-full text-left text-xs whitespace-nowrap">
-                                                <thead className="bg-black/40 text-white/50 uppercase"><tr><th className="p-3">Bulan</th><th className="p-3 text-right">Target</th><th className="p-3 text-right">Debet</th><th className="p-3 text-right">Tunggakan</th><th className="p-3">Keterangan</th></tr></thead>
-                                                <tbody className="divide-y divide-white/10">
-                                                    {[...detailModal.member.history].reverse().map((h, i) => (
-                                                        <tr key={i} className="bg-white/[0.02]">
-                                                            <td className="p-3 font-bold">{formatBulan(h?.periode)}</td><td className="p-3 text-right text-white/70">{Number(h?.total_potongan||0).toLocaleString()}</td>
-                                                            <td className="p-3 text-right font-bold text-emerald-300">{Number(h?.berhasil_debet||0).toLocaleString()}</td>
-                                                            <td className="p-3 text-right font-bold text-rose-400">{Number(h?.sisa_pending||0).toLocaleString()}</td>
-                                                            <td className="p-3 text-[10px] whitespace-normal max-w-[200px] italic">{h?.keterangan || '-'}</td>
+                                        <div>
+                                            <h4 className="font-bold text-white/80 mb-3 text-xs uppercase border-l-2 border-purple-500 pl-2">Riwayat Pembayaran Per Periode</h4>
+                                            
+                                            {/* Mobile Card Layout for Timeline */}
+                                            <div className="md:hidden flex flex-col gap-2.5 w-full">
+                                                {[...detailModal.member.history].reverse().map((h, i) => {
+                                                    const p = Number(h?.sisa_pending) || 0; const t = Number(h?.total_potongan) || 0; const d = Number(h?.berhasil_debet) || 0;
+                                                    return (
+                                                        <div key={i} className="bg-white/5 border border-white/10 p-3 rounded-xl text-xs w-full">
+                                                            <div className="flex justify-between font-bold mb-1.5">
+                                                                <span className="text-white">{formatBulan(h?.periode)}</span>
+                                                                <span className={p>0?'text-rose-400 font-bold':'text-emerald-400 font-bold'}>
+                                                                    {p > 0 ? `Pending: Rp ${p.toLocaleString('id-ID')}` : 'Lunas (Rp 0)'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex justify-between text-[11px] text-white/60 mb-2">
+                                                                <span>Target: Rp {t.toLocaleString('id-ID')}</span>
+                                                                <span className="text-emerald-300 font-semibold">Debet: Rp {d.toLocaleString('id-ID')}</span>
+                                                            </div>
+                                                            {h?.keterangan && <div className="bg-black/30 p-2 rounded-lg text-[10px] text-white/70 italic border border-white/5">{h.keterangan}</div>}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            
+                                            {/* Desktop Table Layout for Timeline */}
+                                            <div className="hidden md:block border border-white/10 rounded-2xl overflow-hidden w-full">
+                                                <table className="w-full text-left text-xs whitespace-nowrap">
+                                                    <thead className="bg-black/40 text-white/50 uppercase">
+                                                        <tr>
+                                                            <th className="p-3">Periode</th>
+                                                            <th className="p-3 text-right">Target Potongan</th>
+                                                            <th className="p-3 text-right">Berhasil Debet</th>
+                                                            <th className="p-3 text-right">Sisa Pending</th>
+                                                            <th className="p-3">Status / Keterangan</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-white/10">
+                                                        {[...detailModal.member.history].reverse().map((h, i) => {
+                                                            const p = Number(h?.sisa_pending) || 0;
+                                                            return (
+                                                                <tr key={i} className="bg-white/[0.02] hover:bg-white/5 transition-colors">
+                                                                    <td className="p-3 font-bold text-white">{formatBulan(h?.periode)}</td>
+                                                                    <td className="p-3 text-right text-white/70">Rp {Number(h?.total_potongan||0).toLocaleString('id-ID')}</td>
+                                                                    <td className="p-3 text-right font-bold text-emerald-300">Rp {Number(h?.berhasil_debet||0).toLocaleString('id-ID')}</td>
+                                                                    <td className="p-3 text-right font-bold text-rose-400">Rp {p.toLocaleString('id-ID')}</td>
+                                                                    <td className="p-3 text-[11px] whitespace-normal max-w-[240px] text-white/70 italic">{h?.keterangan || '-'}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -907,27 +1353,33 @@
                         {/* Modal Eskalasi */}
                         {pengajuanModal.open && (
                             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-in">
-                                <div className="glass-panel border border-white/10 rounded-xl p-5 w-full md:max-w-md">
-                                    <h3 className="text-lg font-bold text-white mb-4">Eskalasi Kasus</h3>
+                                <div className="glass-panel border border-white/10 rounded-2xl p-5 w-full md:max-w-md">
+                                    <h3 className="text-lg font-bold text-white mb-4">Eskalasi Kasus Debitur</h3>
                                     <form onSubmit={handleAjukanKasus}>
                                         <div className="mb-4">
                                             <label className="block text-[10px] font-bold text-white/50 mb-1">Pilih Debitur (Red/Critical)</label>
-                                            <select name="loanId" required className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white">
-                                                <option value="" className="bg-slate-900">-- Pilih --</option>
-                                                {loans.filter(l=>l.riskLevel.id==='CRITICAL' || l.riskLevel.id==='RED').map(l=><option key={l.id} value={l.id} className="bg-slate-900">{l.nama}</option>)}
+                                            <select name="loanId" required className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs md:text-sm text-white">
+                                                <option value="" className="bg-slate-900">-- Pilih Debitur --</option>
+                                                {loans.filter(l=>l.riskLevel.id==='CRITICAL' || l.riskLevel.id==='RED').map(l=>(
+                                                    <option key={l.id} value={l.id} className="bg-slate-900">
+                                                        {l.nama} - Nunggak {l.bulanMenunggak} Bln (Rp {l.sisaPending.toLocaleString('id-ID')})
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div className="mb-5">
-                                            <label className="block text-[10px] font-bold text-white/50 mb-1">Alasan</label>
-                                            <select name="alasan" required className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-sm text-white">
-                                                <option value="" className="bg-slate-900">-- Pilih --</option>
+                                            <label className="block text-[10px] font-bold text-white/50 mb-1">Alasan Eskalasi</label>
+                                            <select name="alasan" required className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs md:text-sm text-white">
+                                                <option value="" className="bg-slate-900">-- Pilih Alasan --</option>
                                                 <option value="Macet Total > 3 Bulan" className="bg-slate-900">Macet Total &gt; 3 Bulan</option>
-                                                <option value="PHK Menunggak" className="bg-slate-900">Resign / PHK</option>
+                                                <option value="PHK / Resign Menunggak" className="bg-slate-900">PHK / Resign Menunggak</option>
+                                                <option value="Gagal Debet Kronis" className="bg-slate-900">Gagal Debet Rekening Kronis</option>
+                                                <option value="Tidak Ada Itikad Baik" className="bg-slate-900">Tidak Ada Konfirmasi / Itikad Baik</option>
                                             </select>
                                         </div>
                                         <div className="flex gap-2 justify-end">
-                                            <button type="button" onClick={()=>setPengajuanModal({open:false})} className="px-4 py-2 text-xs font-bold text-white/50">Batal</button>
-                                            <button type="submit" className="px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold">Simpan</button>
+                                            <button type="button" onClick={()=>setPengajuanModal({open:false})} className="px-4 py-2 text-xs font-bold text-white/50 hover:text-white">Batal</button>
+                                            <button type="submit" className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg">Simpan & Eskalasi</button>
                                         </div>
                                     </form>
                                 </div>
@@ -937,41 +1389,56 @@
                         {/* Modal List Debitur per Risiko (Responsive Card/Table) */}
                         {riskModal.open && riskModal.level && (
                             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 z-50 fade-in py-10">
-                                <div className="glass-panel border border-white/10 rounded-xl shadow-2xl w-full md:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative">
+                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-full md:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative">
                                     <div className="px-4 py-3 border-b border-white/10 flex justify-between items-center bg-slate-900/50 sticky top-0 z-10 w-full">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-sm md:text-base font-bold text-white">Debitur:</h3>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${RISK_LEVELS[riskModal.level].color}`}>{riskModal.level}</span>
+                                            <h3 className="text-sm md:text-base font-bold text-white">Daftar Debitur:</h3>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${RISK_LEVELS[riskModal.level].color}`}>{riskModal.level} ({loans.filter(l => l.riskLevel.id === riskModal.level).length})</span>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => exportToCSV(loans.filter(l => l.riskLevel.id === riskModal.level), `Data_${riskModal.level}`)} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-600 text-white"><i className="fa-solid fa-download"></i> CSV</button>
-                                            <button onClick={()=>setRiskModal({open:false, level:null})} className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-white/60"><i className="fa-solid fa-xmark"></i></button>
+                                            <button onClick={() => exportToCSV(loans.filter(l => l.riskLevel.id === riskModal.level), `Data_${riskModal.level}`)} className="px-3 py-1.5 rounded-xl text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5"><i className="fa-solid fa-download"></i> CSV</button>
+                                            <button onClick={()=>setRiskModal({open:false, level:null})} className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white"><i className="fa-solid fa-xmark"></i></button>
                                         </div>
                                     </div>
                                     
                                     <div className="p-3 md:p-4 overflow-y-auto w-full">
                                         {/* Mobile Card Layout */}
-                                        <div className="md:hidden flex flex-col gap-2 w-full">
-                                            {loans.filter(l => l.riskLevel.id === riskModal.level).length === 0 && <div className="text-center p-5 text-white/40 text-xs">Kosong</div>}
+                                        <div className="md:hidden flex flex-col gap-2.5 w-full">
+                                            {loans.filter(l => l.riskLevel.id === riskModal.level).length === 0 && <div className="text-center p-5 text-white/40 text-xs">Tidak ada debitur pada kategori ini.</div>}
                                             {loans.filter(l => l.riskLevel.id === riskModal.level).map(l => (
-                                                <div key={l.id} className="bg-white/5 p-3 rounded-xl flex flex-col gap-2 text-xs w-full">
-                                                    <div className="font-bold flex justify-between"><span>{l.nama}</span><span className="text-rose-400">Rp {l.sisaPending.toLocaleString()}</span></div>
-                                                    <div className="text-[10px] text-white/50">{l.nik} • {l.site} • DPD: {l.dpd}Hr</div>
+                                                <div key={l.id} className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col gap-2 text-xs w-full">
+                                                    <div className="font-bold flex justify-between">
+                                                        <span>{l.nama}</span>
+                                                        <span className="text-rose-300">Rp {l.sisaPending.toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-white/60 flex items-center justify-between">
+                                                        <span>{l.nik} • {l.site}</span>
+                                                        <span className="font-bold text-amber-300">Nunggak: {l.bulanMenunggak} Bulan</span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
 
                                         {/* Desktop Table Layout */}
-                                        <div className="hidden md:block border border-white/10 rounded-xl overflow-x-auto w-full">
+                                        <div className="hidden md:block border border-white/10 rounded-2xl overflow-hidden w-full">
                                             <table className="w-full text-left text-xs whitespace-nowrap">
-                                                <thead className="bg-black/40 text-white/50 uppercase"><tr><th className="p-3">Nama / NIK</th><th className="p-3">Site</th><th className="p-3 text-right">Tunggakan</th><th className="p-3 text-center">DPD</th></tr></thead>
+                                                <thead className="bg-black/40 text-white/50 uppercase">
+                                                    <tr>
+                                                        <th className="p-3">Nama / NIK</th>
+                                                        <th className="p-3">Site</th>
+                                                        <th className="p-3">Lama Tunggakan</th>
+                                                        <th className="p-3 text-right">Tunggakan Pending</th>
+                                                        <th className="p-3 text-center">DPD</th>
+                                                    </tr>
+                                                </thead>
                                                 <tbody className="divide-y divide-white/10">
                                                     {loans.filter(l => l.riskLevel.id === riskModal.level).map(l => (
-                                                        <tr key={l.id} className="bg-white/[0.02]">
-                                                            <td className="p-3 font-bold">{l.nama} <span className="text-[10px] text-white/40 block font-normal">{l.nik}</span></td>
+                                                        <tr key={l.id} className="bg-white/[0.02] hover:bg-white/5 transition-colors">
+                                                            <td className="p-3 font-bold text-white">{l.nama} <span className="text-[10px] text-white/40 block font-normal">{l.nik}</span></td>
                                                             <td className="p-3 text-white/70">{l.site}</td>
-                                                            <td className="p-3 text-right font-bold text-rose-400">Rp {l.sisaPending.toLocaleString('id-ID')}</td>
-                                                            <td className="p-3 text-center">{l.dpd > 0 ? `${l.dpd} Hr` : '-'}</td>
+                                                            <td className="p-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${l.tunggakanBadge.style}`}>{l.tunggakanBadge.text}</span></td>
+                                                            <td className="p-3 text-right font-bold text-rose-300">Rp {l.sisaPending.toLocaleString('id-ID')}</td>
+                                                            <td className="p-3 text-center text-white">{l.dpd > 0 ? `${l.dpd} Hr` : '-'}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -982,13 +1449,13 @@
                             </div>
                         )}
                         
-                        {/* Modal Panduan */}
+                        {/* Modal Panduan SIPEKAT */}
                         {guideModal && (
                             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 z-50 fade-in py-10">
-                                <div className="glass-panel border border-white/10 rounded-xl shadow-2xl w-full md:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
+                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-full md:max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
                                     <div className="px-4 py-3 border-b border-white/10 flex justify-between items-center bg-slate-900/50 sticky top-0 z-10 w-full">
                                         <h3 className="text-sm md:text-base font-bold text-white flex items-center gap-2">
-                                            <i className="fa-solid fa-circle-question text-purple-400"></i> Panduan Penggunaan SIPEKAT
+                                            <i className="fa-solid fa-circle-question text-purple-400"></i> Panduan Pengawasan Kredit SIPEKAT
                                         </h3>
                                         <button onClick={()=>setGuideModal(false)} className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white"><i className="fa-solid fa-xmark"></i></button>
                                     </div>
@@ -996,44 +1463,52 @@
                                     <div className="p-4 md:p-6 overflow-y-auto w-full space-y-6 text-sm text-white/80">
                                         <section>
                                             <h4 className="text-purple-300 font-bold mb-2 flex items-center gap-2"><i className="fa-solid fa-shield-halved"></i> 1. Membaca Tingkat Risiko</h4>
-                                            <p className="mb-3 text-xs md:text-sm">Sistem mengkategorikan debitur ke dalam 4 tingkat risiko berdasarkan perilaku pembayaran:</p>
+                                            <p className="mb-3 text-xs md:text-sm">Sistem mengkategorikan debitur ke dalam 4 tingkat risiko secara dinamis:</p>
                                             <div className="space-y-2 text-xs md:text-sm">
-                                                <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg">
+                                                <div className="flex items-start gap-3 bg-white/5 p-2.5 rounded-xl">
                                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-emerald-500/20 text-emerald-400 border-emerald-500/30 shrink-0 mt-0.5">LANCAR</span>
-                                                    <p>Pembayaran rutin, tidak ada tunggakan, DPD (Telat) &lt; 14 hari.</p>
+                                                    <p>Pembayaran rutin, tidak ada tunggakan bulan berjalan, DPD (Hari Keterlambatan) &lt; 14 hari.</p>
                                                 </div>
-                                                <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg">
+                                                <div className="flex items-start gap-3 bg-white/5 p-2.5 rounded-xl">
                                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-amber-500/20 text-amber-400 border-amber-500/30 shrink-0 mt-0.5">WARNING</span>
-                                                    <p>Mulai menunggak bulan ini, atau punya riwayat telat sesekali (DPD 1-30 hari).</p>
+                                                    <p>Menunggak 1 bulan tagihan (bulan berjalan), atau punya riwayat telat sesekali (DPD 1-30 hari).</p>
                                                 </div>
-                                                <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg">
+                                                <div className="flex items-start gap-3 bg-white/5 p-2.5 rounded-xl">
                                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-rose-500/20 text-rose-400 border-rose-500/30 shrink-0 mt-0.5">BERMASALAH</span>
-                                                    <p>Sering telat (DPD &gt; 30 hari), atau tunggakan menumpuk hingga 2x lipat dari target potongan.</p>
+                                                    <p>Menunggak 2 bulan tagihan, sering telat (DPD &gt; 30 hari), atau tunggakan pending mencapai 2x lipat dari angsuran bulanan normal.</p>
                                                 </div>
-                                                <div className="flex items-start gap-3 bg-white/5 p-2 rounded-lg border border-rose-500/30">
+                                                <div className="flex items-start gap-3 bg-white/5 p-2.5 rounded-xl border border-rose-500/40 bg-rose-950/30">
                                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-slate-800/80 text-red-500 border-red-500/50 shrink-0 mt-0.5">KRITIS</span>
-                                                    <p>Gagal bayar kronis (DPD &gt; 60 hari), terindikasi kasus lama (tahun lalu), macet, resign, atau kabur.</p>
+                                                    <p>Menunggak ≥ 3 bulan tagihan (kronis), gagal bayar (DPD &gt; 60 hari), riwayat kasus lama (lintas tahun), macet total, atau resign/kabur.</p>
                                                 </div>
                                             </div>
                                         </section>
 
                                         <section>
-                                            <h4 className="text-blue-300 font-bold mb-2 flex items-center gap-2"><i className="fa-solid fa-robot"></i> 2. Deteksi Pintar AI (AI Warning)</h4>
-                                            <p className="mb-2 text-xs md:text-sm">AI otomatis memindai teks pada kolom "Keterangan" di Excel/Sheet untuk memberikan konteks ekstra:</p>
-                                            <ul className="list-disc pl-5 space-y-1 text-xs md:text-sm text-white/70">
-                                                <li><strong className="text-white">Indikasi Itikad Baik:</strong> Walau tidak bayar penuh, namun ada setoran nyicil (Bayar Sebagian), AI tidak akan langsung memvonis Kritis (kecuali habit-nya parah).</li>
-                                                <li><strong className="text-white">Deteksi Kasus Lama:</strong> Jika di keterangan tertulis tahun lampau (misal: "Sisa 2023"), status akan dipaksa menjadi <strong>KRITIS</strong>.</li>
-                                                <li><strong className="text-white">Kata Kunci Bahaya:</strong> AI mendeteksi kata seperti "kabur", "resign", "macet", atau "gagal total".</li>
+                                            <h4 className="text-amber-300 font-bold mb-2 flex items-center gap-2"><i className="fa-solid fa-clock-rotate-left"></i> 2. Penegasan Tunggakan dari Bulan Berjalan</h4>
+                                            <p className="mb-2 text-xs md:text-sm">Informasi berapa bulan tunggakan dihitung secara otomatis menggunakan 2 parameter:</p>
+                                            <ul className="list-disc pl-5 space-y-1.5 text-xs md:text-sm text-white/70">
+                                                <li><strong className="text-white">Rasio Tagihan Tertunggak:</strong> Total sisa pending dibagi dengan nilai angsuran bulanan (misal: Pending Rp 1.500.000 dengan angsuran Rp 500.000/bln = 3 Bulan Tagihan).</li>
+                                                <li><strong className="text-white">Streak Bulan Menunggak:</strong> Riwayat kegagalan bayar berturut-turut yang terdata hingga periode saat ini.</li>
                                             </ul>
                                         </section>
 
                                         <section>
-                                            <h4 className="text-emerald-300 font-bold mb-2 flex items-center gap-2"><i className="fa-solid fa-file-signature"></i> 3. Tindakan & Surat Peringatan</h4>
+                                            <h4 className="text-blue-300 font-bold mb-2 flex items-center gap-2"><i className="fa-solid fa-robot"></i> 3. Deteksi Pintar AI (AI Early Warning)</h4>
+                                            <p className="mb-2 text-xs md:text-sm">AI otomatis memindai teks pada kolom "Keterangan" di Excel/Payroll Sheet untuk memberikan deteksi dini:</p>
+                                            <ul className="list-disc pl-5 space-y-1.5 text-xs md:text-sm text-white/70">
+                                                <li><strong className="text-white">Indikasi Bayar Sebagian:</strong> Jika ada cicilan masuk meski belum lunas penuh, AI mencatat sebagai itikad baik.</li>
+                                                <li><strong className="text-white">Deteksi Kasus Lintas Tahun:</strong> Catatan seperti "Sisa 2023" otomatis menaikkan status menjadi Kritis.</li>
+                                                <li><strong className="text-white">Kata Kunci Resiko Khusus:</strong> Kata seperti "kabur", "resign", "phk", atau "gagal total".</li>
+                                            </ul>
+                                        </section>
+
+                                        <section>
+                                            <h4 className="text-emerald-300 font-bold mb-2 flex items-center gap-2"><i className="fa-solid fa-file-signature"></i> 4. Tindakan & Surat Peringatan (SP)</h4>
                                             <ul className="list-disc pl-5 space-y-2 text-xs md:text-sm text-white/70">
-                                                <li>Gunakan tab <strong>Pemantauan</strong> untuk melihat profil profil anggota secara detail.</li>
-                                                <li>Anggota yang berstatus <strong className="text-red-400">KRITIS</strong> akan memunculkan tombol <strong>Surat Peringatan</strong> di detail profilnya.</li>
-                                                <li>Surat peringatan akan dicetak otomatis dalam format PDF lengkap dengan tanda tangan Ketua dan Sekretaris serta Cap Koperasi.</li>
-                                                <li>Gunakan tab <strong>Penyelesaian</strong> untuk mencatat kasus-kasus eskalasi.</li>
+                                                <li>Gunakan tab <strong>Pemantauan</strong> untuk mencari anggota berdasarkan nama/NRP serta memfilter berdasarkan status risiko dan lama tunggakan.</li>
+                                                <li>Debitur berstatus <strong className="text-red-400">KRITIS & BERMASALAH</strong> dilengkapi tombol cepat <strong>Cetak Surat Peringatan (SP)</strong> yang otomatis mencantumkan rincian lama bulan menunggak dan total pendingan.</li>
+                                                <li>Gunakan tombol <strong>Export Excel/CSV</strong> untuk mengunduh laporan pemantauan lengkap.</li>
                                             </ul>
                                         </section>
                                     </div>
