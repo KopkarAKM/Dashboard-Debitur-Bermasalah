@@ -192,6 +192,7 @@
             const [pengajuanModal, setPengajuanModal] = useState({ open: false });
             const [riskModal, setRiskModal] = useState({ open: false, level: null });
             const [guideModal, setGuideModal] = useState(false);
+            const [waModal, setWaModal] = useState({ open: false, member: null, phone: '', message: '' });
 
             // Utils
             const formatBulan = (val) => {
@@ -382,6 +383,55 @@
                 printWindow.document.close();
             };
 
+            // WhatsApp Japri Generator Sesuai Matriks SIPEKAT (P1 - P4 & Tier)
+            const generateWhatsAppTemplate = (member) => {
+                if (!member) return '';
+                const name = member.nama || 'Bapak/Ibu';
+                const nik = member.nik || '-';
+                const site = member.site || '-';
+                const pending = (member.sisaPending || 0).toLocaleString('id-ID');
+                const pokok = (member.sisaOutstanding || 0).toLocaleString('id-ID');
+                const angsuran = ((member.targetPotongan || 0)).toLocaleString('id-ID');
+                const bulan = member.bulanMenunggak || 1;
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth() + 1;
+                const spNumber = `${nik}/${member.actionPriority?.code === 'P1' ? 'SP-KERAS' : 'SP-1'}/KOPKAR-AKM/${currentMonth}/${currentYear}`;
+
+                if (member.actionPriority?.code === 'P1') {
+                    return `*PERINGATAN KERAS & PANGGILAN FORMAL PENGURUS KOPERASI*\nNo. Dokumen: ${spNumber}\n\nKepada Yth:\nBapak/Ibu: *${name}*\nNRP: *${nik}* | Unit / Site: *${site}*\n\nBerdasarkan catatan sistem pengawasan kredit SIPEKAT, pinjaman Anda telah masuk kategori *DARURAT (Kronis/Macet ${bulan} Bulan Tagihan)* dengan total kewajiban tertunda sebesar:\n🚨 *TOTAL PENDING: Rp ${pending}*\n🚨 Sisa Pokok Hutang: Rp ${pokok}\n\n⚠️ *LANDASAN HUKUM & PASAL PKB:*\nSesuai *Pasal 58 Ayat (20) Perjanjian Kerja Bersama (PKB) PT Adaro Indonesia Periode 2026–2028*, kelalaian membayar tunggakan pinjaman yang berlarut merupakan bentuk *Pelanggaran Disiplin Kerja*.\n\n📌 *INSTRUKSI SEGERA:*\n1. Segera lakukan pelunasan ke *Bank Mandiri No. Rekening: 0310098896775 a.n. Karyawan Adaro Karya*.\n2. Atau hadir melakukan klarifikasi dan mediasi langsung bersama Pengurus Koperasi & HRD Site.\n\nApabila tidak ada itikad baik penyelesaian, Pengurus akan mengajukan sanksi disiplin resmi ke HR Corporate serta pemotongan hak kompensasi/pesangon (Exit Clearance).\n\nHubungi Segera Pengurus/Admin: 0821-5238-6718.`;
+                }
+
+                if (member.actionPriority?.code === 'P2') {
+                    return `*PEMBERITAHUAN RESMI PENGURUS KOPERASI (SP-1)*\nNo. Dokumen: ${spNumber}\n\nKepada Yth:\nBapak/Ibu: *${name}*\nNRP: *${nik}* | Site: *${site}*\n\nBerdasarkan data sistem pengawasan kredit SIPEKAT, Anda tercatat *menunggak pembayaran selama ${bulan} Bulan* dengan akumulasi tagihan tertunda sebesar:\n🔴 *Total Pending: Rp ${pending}*\n🔴 Sisa Pokok: Rp ${pokok}\n🔴 Angsuran Normal: Rp ${angsuran} / bulan\n\nMengingat tagihan belum diselesaikan, Pengurus telah menerbitkan *Surat Peringatan 1 (SP-1)* resmi.\n\n⚠️ *TINDAKAN YANG DIWAJIBKAN:*\n1. Menyelesaikan pelunasan transfer ke *Bank Mandiri No. Rekening: 0310098896775 a.n. Karyawan Adaro Karya*.\n2. Atau membuat surat komitmen penyelesaian tertulis kepada Pengurus Koperasi.\n\nKelalaian penyelesaian dapat berdampak pada penangguhan fasilitas anggota dan eskalasi penanganan bersama Manajemen HRD sesuai ketentuan PKB PT Adaro Indonesia.\n\nKonfirmasi segera bukti transfer / tanggapan ke WhatsApp Admin: 0821-5238-6718.`;
+                }
+
+                if (member.actionPriority?.code === 'P3') {
+                    return `Yth. Bapak/Ibu *${name}* (NRP: ${nik} | Site: ${site}),\n\nBerdasarkan sistem monitoring SIPEKAT Koperasi Karyawan Adaro Karya Mandiri, kami mencatat kewajiban angsuran Anda saat ini tertunda selama *${bulan} Bulan* dengan rincian:\n📌 *Total Tagihan Tertunda: Rp ${pending}*\n📌 Sisa Pokok Pinjaman: Rp ${pokok}\n\nKami memahami kemungkinan adanya kendala finansial tak terduga yang sedang Bapak/Ibu hadapi. Pengurus Koperasi siap membantu mencarikan solusi terbaik tanpa sanksi Surat Peringatan (SP), antara lain:\n1. Opsi Pemotongan langsung dari saldo *Simpanan Sukarela* Anda di Koperasi.\n2. Penyesuaian jadwal atau restrukturisasi angsuran.\n\nMohon konfirmasi tanggapan Bapak/Ibu dengan membalas pesan ini atau hubungi Admin Koperasi di 0821-5238-6718 agar status keanggotaan Anda tetap terjaga dengan baik. Terima kasih atas itikad baik dan kerja sama Bapak/Ibu 🙏`;
+                }
+
+                // Default: P4 Notifikasi Ringan
+                return `Selamat pagi/siang Bapak/Ibu *${name}* (NRP: ${nik}),\n\nSemoga Bapak/Ibu dan keluarga senantiasa sehat.\n\nKami dari Pengurus Koperasi Karyawan Adaro Karya Mandiri ingin menginformasikan bahwa berdasarkan laporan pemotongan payroll periode berjalan, terdapat selisih/pendingan potongan kewajiban Anda sebesar:\n📌 *Total Pending: Rp ${pending}*\n📌 Status: Menunggak 1 Bulan (Bulan Berjalan)\n\nKemungkinan hal ini terjadi karena kendala teknis antrean bank atau saldo saat pendebetan.\n\nMohon bantuannya untuk melakukan pelunasan transfer manual ke:\n💳 *Bank Mandiri: 0310098896775*\na.n. *Karyawan Adaro Karya*\n\nSetelah transfer, mohon kirimkan bukti pembayarannya ke nomor ini agar sistem SIPEKAT segera memperbarui status Anda menjadi lunas. Terima kasih atas kerja samanya 🙏`;
+            };
+
+            const openWhatsAppModal = (member) => {
+                const defaultMsg = generateWhatsAppTemplate(member);
+                const defaultPhone = member.phone || '';
+                setWaModal({ open: true, member, phone: defaultPhone, message: defaultMsg });
+            };
+
+            const sendViaWhatsApp = () => {
+                if (!waModal.message) return;
+                let cleanPhone = String(waModal.phone || '').trim().replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) {
+                    cleanPhone = '62' + cleanPhone.slice(1);
+                }
+                const url = cleanPhone 
+                    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waModal.message)}`
+                    : `https://api.whatsapp.com/send?text=${encodeURIComponent(waModal.message)}`;
+                window.open(url, '_blank');
+            };
+
             const exportToCSV = (data, filename) => {
                 if (data.length === 0) return;
                 const headers = ["NRP", "Nama", "Site", "Prioritas Tindakan", "Tier Nominal", "Lama Tunggakan (Bulan)", "Status Tunggakan", "Target Potongan", "Berhasil Debet", "Sisa Outstanding", "Tunggakan (Pending)", "DPD", "Tingkat Risiko", "Keterangan"];
@@ -491,10 +541,18 @@
                     if(!memberMap.has(nrp)) {
                         memberMap.set(nrp, {
                             id: rep.id || `temp-${Math.random()}`,
-                            nama: rep.nama || 'Tanpa Nama', nik: nrp, site: rep.site || '-', totalPinjamanAwal: 0, history: []
+                            nama: rep.nama || 'Tanpa Nama', 
+                            nik: nrp, 
+                            site: rep.site || '-', 
+                            phone: rep.no_hp || rep.telepon || rep.phone || rep.hp || rep.kontak || '',
+                            totalPinjamanAwal: 0, 
+                            history: []
                         });
                     }
                     const member = memberMap.get(nrp);
+                    if (!member.phone && (rep.no_hp || rep.telepon || rep.phone || rep.hp || rep.kontak)) {
+                        member.phone = rep.no_hp || rep.telepon || rep.phone || rep.hp || rep.kontak;
+                    }
                     member.history.push(rep);
                     
                     const repJumlah = Number(rep.jumlah) || 0;
@@ -1481,8 +1539,13 @@
                                                 )}
                                                 <div className="flex gap-2 mt-1">
                                                     <button onClick={()=>setDetailModal({open:true, member:loan})} className="flex-1 py-2 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 text-center hover:bg-purple-500/30">
-                                                        <i className="fa-solid fa-chart-gantt mr-1"></i> Buka Detail
+                                                        <i className="fa-solid fa-chart-gantt mr-1"></i> Detail
                                                     </button>
+                                                    {loan.sisaPending > 0 && (
+                                                        <button onClick={() => openWhatsAppModal(loan)} className="px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow flex items-center gap-1.5 transition-all" title="Kirim WA Japri Sesuai Tier">
+                                                            <i className="fa-brands fa-whatsapp text-sm"></i> <span>WA Japri</span>
+                                                        </button>
+                                                    )}
                                                     {loan.actionPriority.canIssueSP && (
                                                         <button onClick={() => printWarningLetter(loan)} className="px-3 py-2 rounded-lg text-xs font-bold bg-rose-600 text-white shadow hover:bg-rose-500" title="Cetak Surat Peringatan">
                                                             <i className="fa-solid fa-print"></i>
@@ -1576,9 +1639,14 @@
                                                             </td>
                                                             <td className="px-4 py-3 text-right">
                                                                 <div className="flex items-center justify-end gap-1.5">
-                                                                    <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-all">
+                                                                    <button onClick={()=>setDetailModal({open:true, member:loan})} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition-all" title="Buka Detail">
                                                                         Detail
                                                                     </button>
+                                                                    {loan.sisaPending > 0 && (
+                                                                        <button onClick={() => openWhatsAppModal(loan)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-1" title="Kirim WA Japri Sesuai Tier">
+                                                                            <i className="fa-brands fa-whatsapp text-xs"></i> <span>WA</span>
+                                                                        </button>
+                                                                    )}
                                                                     {loan.actionPriority.canIssueSP && (
                                                                         <button onClick={() => printWarningLetter(loan)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-rose-600 text-white shadow hover:bg-rose-500 transition-all" title="Cetak Surat Peringatan">
                                                                             <i className="fa-solid fa-print"></i>
@@ -1637,6 +1705,11 @@
                                             <div className="text-xs text-white/50 mt-0.5">{detailModal.member.nik} | Site: {detailModal.member.site}</div>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            {detailModal.member.sisaPending > 0 && (
+                                                <button onClick={() => openWhatsAppModal(detailModal.member)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1.5 transition-all">
+                                                    <i className="fa-brands fa-whatsapp text-sm"></i> <span className="hidden sm:inline">Kirim WA Japri</span>
+                                                </button>
+                                            )}
                                             {detailModal.member.actionPriority.canIssueSP ? (
                                                 <button onClick={() => printWarningLetter(detailModal.member)} className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg flex items-center gap-1.5 transition-all">
                                                     <i className="fa-solid fa-print"></i> <span className="hidden sm:inline">Cetak Surat Peringatan</span>
@@ -2056,7 +2129,140 @@
                                                 <li>Gunakan tombol <strong>Export Excel/CSV</strong> untuk mengunduh laporan lengkap termasuk kolom Prioritas Tindakan dan Tier Nominal.</li>
                                             </ul>
                                         </section>
+
+                                        <section>
+                                            <h4 className="text-emerald-400 font-bold mb-2 flex items-center gap-2"><i className="fa-brands fa-whatsapp"></i> 7. Pengiriman Pesan WA Japri Personal Sesuai Tier Matriks</h4>
+                                            <ul className="list-disc pl-5 space-y-1.5 text-xs md:text-sm text-white/70">
+                                                <li><strong className="text-white">P1 (Darurat / Kronis):</strong> Pesan peringatan formal mencakup nomor register SP, total tunggakan, dan klausul <em>Pasal 58 Ayat (20) PKB PT Adaro Indonesia</em>.</li>
+                                                <li><strong className="text-white">P2 (Khusus / SP-1):</strong> Pesan notifikasi SP-1, penegasan angsuran, serta tenggat penyelesaian/surat komitmen.</li>
+                                                <li><strong className="text-white">P3 (Persuasif):</strong> Pendekatan santun menawarkan restrukturisasi atau opsi penutupan via Simpanan Sukarela (Bebas SP).</li>
+                                                <li><strong className="text-white">P4 (Notifikasi Rutin):</strong> Pesan pengingat payroll ramah sebelum cut-off bulan berikutnya.</li>
+                                            </ul>
+                                        </section>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Modal WA Japri Personal Berdasarkan Matriks SIPEKAT */}
+                        {waModal.open && waModal.member && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 z-50 fade-in py-6">
+                                <div className="glass-panel border border-white/10 rounded-2xl shadow-2xl w-full md:max-w-2xl max-h-[92vh] flex flex-col overflow-hidden relative">
+                                    
+                                    {/* Modal Header */}
+                                    <div className="px-4 py-3 border-b border-white/10 flex justify-between items-center bg-slate-900/80 sticky top-0 z-10">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                                                <i className="fa-brands fa-whatsapp"></i>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm md:text-base font-bold text-white leading-tight">Template WA Japri: {waModal.member.nama}</h3>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${waModal.member.actionPriority.badgeStyle}`}>
+                                                        {waModal.member.actionPriority.short}
+                                                    </span>
+                                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-semibold border ${waModal.member.exposureTier.color}`}>
+                                                        {waModal.member.exposureTier.badge}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setWaModal({ open: false, member: null, phone: '', message: '' })} 
+                                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+                                        >
+                                            <i className="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+
+                                    {/* Modal Body */}
+                                    <div className="p-4 md:p-5 overflow-y-auto space-y-3.5 text-xs md:text-sm">
+                                        
+                                        {/* Info Target Banner */}
+                                        <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                            <div>
+                                                <div className="text-white font-bold flex items-center gap-1.5">
+                                                    <span>{waModal.member.nama}</span>
+                                                    <span className="text-white/40 text-xs">({waModal.member.nik})</span>
+                                                </div>
+                                                <div className="text-[11px] text-white/50 mt-0.5">
+                                                    Site: <strong className="text-white/70">{waModal.member.site}</strong> • Tunggakan: <strong className="text-rose-300">{waModal.member.bulanMenunggak} Bulan ({waModal.member.tunggakanBadge.text})</strong>
+                                                </div>
+                                            </div>
+                                            <div className="sm:text-right">
+                                                <div className="text-[10px] text-white/40 uppercase font-semibold">Total Pending</div>
+                                                <div className="text-sm font-black text-rose-400">Rp {waModal.member.sisaPending.toLocaleString('id-ID')}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Phone Input */}
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-white/70 uppercase mb-1">
+                                                <i className="fa-solid fa-phone text-emerald-400 mr-1"></i> Nomor WhatsApp Anggota (Opsional):
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                value={waModal.phone} 
+                                                onChange={(e) => setWaModal({ ...waModal, phone: e.target.value })} 
+                                                placeholder="Contoh: 08123456789 atau 628123456789" 
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs md:text-sm text-white placeholder-white/40 outline-none focus:border-emerald-500 transition-all font-mono"
+                                            />
+                                            <p className="text-[10px] text-white/40 mt-1">Jika nomor diisi, tombol 'Buka WhatsApp' akan langsung membuka ruang chat nomor tersebut.</p>
+                                        </div>
+
+                                        {/* Message Text Area */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-[11px] font-bold text-white/70 uppercase">
+                                                    <i className="fa-solid fa-pen-to-square text-purple-400 mr-1"></i> Pratinjau & Edit Teks Pesan:
+                                                </label>
+                                                <button 
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(waModal.message);
+                                                        showToast("Pesan WhatsApp berhasil disalin ke clipboard!", "success");
+                                                    }} 
+                                                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 transition-all"
+                                                >
+                                                    <i className="fa-regular fa-copy"></i> Salin Teks
+                                                </button>
+                                            </div>
+                                            <textarea 
+                                                rows="10" 
+                                                value={waModal.message} 
+                                                onChange={(e) => setWaModal({ ...waModal, message: e.target.value })} 
+                                                className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs md:text-sm text-white/90 font-mono leading-relaxed outline-none focus:border-emerald-500 transition-all resize-y"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Modal Footer */}
+                                    <div className="p-3.5 border-t border-white/10 bg-slate-900/80 flex items-center justify-between gap-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setWaModal({ open: false, member: null, phone: '', message: '' })} 
+                                            className="px-4 py-2 text-xs font-bold text-white/50 hover:text-white transition-all"
+                                        >
+                                            Batal
+                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(waModal.message);
+                                                    showToast("Pesan WhatsApp berhasil disalin!", "success");
+                                                }} 
+                                                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                                            >
+                                                <i className="fa-solid fa-copy"></i> <span>Salin Teks</span>
+                                            </button>
+                                            <button 
+                                                onClick={sendViaWhatsApp} 
+                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/40 flex items-center gap-1.5 transition-all"
+                                            >
+                                                <i className="fa-brands fa-whatsapp text-sm"></i> <span>Buka WhatsApp</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         )}
