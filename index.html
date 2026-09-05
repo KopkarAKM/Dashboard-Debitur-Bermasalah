@@ -586,6 +586,23 @@
                         }
                     }
 
+                    // Fungsi bantu: hitung selisih bulan kalender antara dua string periode (format YYYY-MM)
+                    const getPeriodMonthDiff = (p1, p2) => {
+                        if (!p1 || !p2) return 999;
+                        try {
+                            const parts1 = String(p1).split('-');
+                            const parts2 = String(p2).split('-');
+                            if (parts1.length >= 2 && parts2.length >= 2) {
+                                const y1 = parseInt(parts1[0], 10);
+                                const m1 = parseInt(parts1[1], 10);
+                                const y2 = parseInt(parts2[0], 10);
+                                const m2 = parseInt(parts2[1], 10);
+                                return (y1 - y2) * 12 + (m1 - m2);
+                            }
+                        } catch (e) {}
+                        return 999;
+                    };
+
                     // Menghitung frekuensi seluruh kegagalan bayar dalam riwayat
                     const lateFreq = member.history.filter(h => {
                         const pending = Number(h?.sisa_pending) || 0;
@@ -594,17 +611,35 @@
                         return pending > 0 || (target > 0 && debet < target);
                     }).length;
 
-                    // 1. Hitung streak bulan menunggak berturut-turut hingga periode berjalan
+                    // 1. Hitung streak bulan menunggak berturut-turut berdasarkan kontinuitas KALENDER hingga periode berjalan
                     let streakMenunggak = 0;
                     for (let i = member.history.length - 1; i >= 0; i--) {
                         const h = member.history[i];
                         const p = Number(h?.sisa_pending) || 0;
                         const t = Number(h?.total_potongan) || 0;
                         const d = Number(h?.berhasil_debet) || 0;
-                        if (p > 0 || (t > 0 && d < t)) {
-                            streakMenunggak++;
+                        const isUnpaid = p > 0 || (t > 0 && d < t);
+
+                        if (i === member.history.length - 1) {
+                            // Periode terkini / berjalan
+                            if (isUnpaid) {
+                                streakMenunggak = 1;
+                            } else {
+                                break;
+                            }
                         } else {
-                            break;
+                            // Cek kontinuitas kalender dengan data periode setelahnya di riwayat
+                            const nextPeriod = member.history[i + 1]?.periode;
+                            const currentPeriod = h?.periode;
+                            const diffMonths = getPeriodMonthDiff(nextPeriod, currentPeriod);
+
+                            // Jika selisih bulan kalender tepat 1 (artinya berurutan tanpa jeda) dan sama-sama belum lunas
+                            if (diffMonths === 1 && isUnpaid) {
+                                streakMenunggak++;
+                            } else {
+                                // Ada jeda bulan (pernah lancar bayar di antaranya) atau periode ini lunas -> streak terputus!
+                                break;
+                            }
                         }
                     }
 
@@ -612,14 +647,16 @@
                     const statusKet = String(latest?.keterangan || '').toLowerCase();
                     const textAnalysis = analyzeKeterangan(latest?.keterangan);
 
-                    // 2. Hitung estimasi durasi bulan menunggak komprehensif (streak riwayat & estimasi tagihan)
+                    // 2. Hitung estimasi durasi bulan menunggak komprehensif (streak kalender & estimasi rasio tagihan)
                     let bulanMenunggak = 0;
                     if (sisaPending > 0) {
                         let estMonths = streakMenunggak > 0 ? streakMenunggak : 1;
-                        if (targetPotongan > 0 && sisaPending > targetPotongan * 1.5) {
+                        // Jika sisa pending menumpuk melebihi 1.5x angsuran normal (indikasi akumulasi tunggakan lebih dari 1 bulan)
+                        if (targetPotongan > 0 && sisaPending >= targetPotongan * 1.5) {
                             estMonths = Math.max(estMonths, Math.round(sisaPending / targetPotongan));
                         }
-                        if (textAnalysis.extractedMonths > 0) {
+                        // Jika AI mendeteksi durasi eksplisit pada catatan periode berjalan
+                        if (textAnalysis.extractedMonths > 0 && (sisaPending >= targetPotongan * 1.5 || textAnalysis.severity === 2)) {
                             estMonths = Math.max(estMonths, textAnalysis.extractedMonths);
                         }
                         bulanMenunggak = Math.max(1, estMonths);
@@ -696,17 +733,20 @@
                     if (textAnalysis.insight) {
                         warnings.push(`🔍 AI: ${textAnalysis.insight}`);
                     }
+                    if (lateFreq >= 3 && bulanMenunggak < 3) {
+                        warnings.push(`Riwayat Telat (${lateFreq}x)`);
+                    }
 
                     let riskLevel = RISK_LEVELS.GREEN;
                     
-                    // Logika Penentuan Risiko Terintegrasi dengan Lama Tunggakan
-                    if (paymentBadgeInfo && paymentBadgeInfo.text.includes("Lunas")) {
-                        riskLevel = (lateFreq >= 3 || dpd > 14) ? RISK_LEVELS.YELLOW : RISK_LEVELS.GREEN;
-                    } else if (dpd > 60 || statusKet.includes('gagal total') || lateFreq >= 4 || statusKet.includes('macet') || textAnalysis.severity === 2 || bulanMenunggak >= 3) {
+                    // Logika Penentuan Risiko Terintegrasi dengan Lama Tunggakan dan DPD
+                    if (sisaPending === 0 || (paymentBadgeInfo && paymentBadgeInfo.text.includes("Lunas"))) {
+                        riskLevel = (dpd > 14) ? RISK_LEVELS.YELLOW : RISK_LEVELS.GREEN;
+                    } else if (bulanMenunggak >= 3 || dpd > 60 || statusKet.includes('gagal total') || statusKet.includes('macet') || textAnalysis.severity === 2) {
                         riskLevel = RISK_LEVELS.CRITICAL;
-                    } else if (dpd > 30 || lateFreq >= 2 || sisaPending >= (targetPotongan * 2) || bulanMenunggak >= 2 || textAnalysis.severity === 1) {
+                    } else if (bulanMenunggak >= 2 || dpd > 30 || sisaPending >= (targetPotongan * 1.8) || textAnalysis.severity === 1) {
                         riskLevel = RISK_LEVELS.RED;
-                    } else if (dpd > 0 || lateFreq === 1 || sisaPending > 0) {
+                    } else if (dpd > 0 || sisaPending > 0) {
                         riskLevel = RISK_LEVELS.YELLOW;
                     }
 
@@ -734,7 +774,7 @@
                             actionPriority = ACTION_PRIORITIES.P4;
                         }
                     } else {
-                        // Nunggak 1 Bulan / Warning
+                        // Nunggak 1 Bulan / Warning (Bulan Berjalan)
                         if (exposureTier.id === 'TIER_4') {
                             actionPriority = ACTION_PRIORITIES.P2;
                         } else if (exposureTier.id === 'TIER_3') {
